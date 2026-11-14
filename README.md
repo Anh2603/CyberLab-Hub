@@ -12,7 +12,7 @@ The project is designed to demonstrate five network protocols through connected 
 
 ## Project status
 
-Phase 1 foundation is implemented. The repository currently provides runnable backend, catalog, and terminal UI entry points, configuration validation, health endpoints, graceful shutdown, and automated tests. Product features are added incrementally according to the roadmap.
+Phase 2 is implemented. The repository provides runnable backend, catalog, and terminal UI entry points, separate SQLite databases, account registration and login, bcrypt password hashing, JWT sessions, learner/admin authorization, health endpoints, graceful shutdown, and automated tests. Product features are added incrementally according to the roadmap.
 
 ## Intended architecture
 
@@ -83,6 +83,15 @@ go test ./...
 go vet ./...
 go build ./cmd/backend ./cmd/catalog ./cmd/tui
 ```
+
+## Authentication API
+
+- `POST /api/auth/register` creates a learner account.
+- `POST /api/auth/login` returns a signed bearer token.
+- `GET /api/me` returns the authenticated identity.
+- `GET /api/admin/health` demonstrates administrator-only authorization.
+
+To create the first administrator, set `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` together before starting the backend. The operation is idempotent: it creates the named administrator once and never replaces an existing learner. Remove both variables after the account has been created.
 
 ## Security principles
 

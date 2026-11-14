@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Anh2603/CyberLab-Hub/internal/config"
+	"github.com/Anh2603/CyberLab-Hub/internal/store"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -22,6 +23,12 @@ func main() {
 		logger.Error("invalid catalog configuration", "error", err)
 		os.Exit(1)
 	}
+	catalogStore, err := store.OpenCatalog(context.Background(), cfg.DatabasePath)
+	if err != nil {
+		logger.Error("catalog database initialization failed", "error", err)
+		os.Exit(1)
+	}
+	defer catalogStore.Close()
 
 	listener, err := net.Listen("tcp", cfg.ListenAddr)
 	if err != nil {

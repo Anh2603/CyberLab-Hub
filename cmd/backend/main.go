@@ -9,8 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Anh2603/CyberLab-Hub/internal/auth"
 	"github.com/Anh2603/CyberLab-Hub/internal/backend"
 	"github.com/Anh2603/CyberLab-Hub/internal/config"
+	"github.com/Anh2603/CyberLab-Hub/internal/store"
 )
 
 func main() {
@@ -20,10 +22,26 @@ func main() {
 		logger.Error("invalid backend configuration", "error", err)
 		os.Exit(1)
 	}
+	accounts, err := store.OpenBackend(context.Background(), cfg.DatabasePath)
+	if err != nil {
+		logger.Error("backend database initialization failed", "error", err)
+		os.Exit(1)
+	}
+	defer accounts.Close()
+
+	created, err := backend.BootstrapAdmin(context.Background(), accounts, cfg.BootstrapAdmin, cfg.BootstrapPassword)
+	if err != nil {
+		logger.Error("administrator bootstrap failed", "error", err)
+		os.Exit(1)
+	}
+	if created {
+		logger.Info("administrator account created", "username", cfg.BootstrapAdmin)
+	}
+	tokens := auth.NewManager(cfg.JWTSecret, cfg.JWTTTL)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           backend.NewRouter(),
+		Handler:           backend.NewRouter(backend.Dependencies{Accounts: accounts, Tokens: tokens}),
 		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 	}
 

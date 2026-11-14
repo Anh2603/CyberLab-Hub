@@ -22,6 +22,19 @@ func TestLoadBackendDefaults(t *testing.T) {
 	if cfg.GRPCTimeout != 2*time.Second {
 		t.Fatalf("GRPCTimeout = %v, want %v", cfg.GRPCTimeout, 2*time.Second)
 	}
+	if cfg.DatabasePath != "./data/backend.db" || cfg.JWTTTL != 24*time.Hour {
+		t.Fatalf("database path/JWT TTL = %q/%v", cfg.DatabasePath, cfg.JWTTTL)
+	}
+}
+
+func TestLoadBackendRejectsPartialAdminBootstrap(t *testing.T) {
+	t.Setenv("JWT_SECRET", strings.Repeat("a", 32))
+	t.Setenv("BOOTSTRAP_ADMIN_USERNAME", "operator")
+
+	_, err := LoadBackend()
+	if err == nil || !strings.Contains(err.Error(), "BOOTSTRAP_ADMIN") {
+		t.Fatalf("LoadBackend() error = %v, want bootstrap validation error", err)
+	}
 }
 
 func TestLoadBackendRejectsWeakJWTSecret(t *testing.T) {

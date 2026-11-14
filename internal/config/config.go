@@ -25,8 +25,12 @@ type Backend struct {
 	HTTPAddr          string
 	TCPAddr           string
 	UDPAddr           string
+	DatabasePath      string
 	CatalogGRPCAddr   string
 	JWTSecret         string
+	JWTTTL            time.Duration
+	BootstrapAdmin    string
+	BootstrapPassword string
 	GRPCTimeout       time.Duration
 	ShutdownTimeout   time.Duration
 	ReadHeaderTimeout time.Duration
@@ -34,6 +38,7 @@ type Backend struct {
 
 type Catalog struct {
 	ListenAddr      string
+	DatabasePath    string
 	ShutdownTimeout time.Duration
 }
 
@@ -57,12 +62,21 @@ func LoadBackend() (Backend, error) {
 		return Backend{}, err
 	}
 
+	jwtTTL, err := durationFromEnv("JWT_TTL", 24*time.Hour)
+	if err != nil {
+		return Backend{}, err
+	}
+
 	cfg := Backend{
 		HTTPAddr:          envOr("HTTP_ADDR", defaultHTTPAddr),
 		TCPAddr:           envOr("TCP_ADDR", defaultTCPAddr),
 		UDPAddr:           envOr("UDP_ADDR", defaultUDPAddr),
+		DatabasePath:      envOr("BACKEND_DB_PATH", "./data/backend.db"),
 		CatalogGRPCAddr:   envOr("CATALOG_GRPC_ADDR", defaultCatalogTarget),
 		JWTSecret:         strings.TrimSpace(os.Getenv("JWT_SECRET")),
+		JWTTTL:            jwtTTL,
+		BootstrapAdmin:    strings.TrimSpace(os.Getenv("BOOTSTRAP_ADMIN_USERNAME")),
+		BootstrapPassword: os.Getenv("BOOTSTRAP_ADMIN_PASSWORD"),
 		GRPCTimeout:       grpcTimeout,
 		ShutdownTimeout:   shutdownTimeout,
 		ReadHeaderTimeout: readHeaderTimeout,
@@ -83,6 +97,12 @@ func LoadBackend() (Backend, error) {
 	if len(cfg.JWTSecret) < 32 {
 		return Backend{}, errors.New("JWT_SECRET must contain at least 32 characters")
 	}
+	if (cfg.BootstrapAdmin == "") != (cfg.BootstrapPassword == "") {
+		return Backend{}, errors.New("BOOTSTRAP_ADMIN_USERNAME and BOOTSTRAP_ADMIN_PASSWORD must be set together")
+	}
+	if cfg.BootstrapAdmin != "" && len(cfg.BootstrapPassword) < 12 {
+		return Backend{}, errors.New("BOOTSTRAP_ADMIN_PASSWORD must contain at least 12 characters")
+	}
 	return cfg, nil
 }
 
@@ -93,6 +113,7 @@ func LoadCatalog() (Catalog, error) {
 	}
 	cfg := Catalog{
 		ListenAddr:      envOr("CATALOG_LISTEN_ADDR", defaultCatalogAddr),
+		DatabasePath:    envOr("CATALOG_DB_PATH", "./data/catalog.db"),
 		ShutdownTimeout: shutdownTimeout,
 	}
 	if err := validateListenAddress("CATALOG_LISTEN_ADDR", cfg.ListenAddr); err != nil {

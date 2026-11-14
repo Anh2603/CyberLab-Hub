@@ -27,6 +27,11 @@ type User struct {
 	CreatedAt    time.Time
 }
 
+type Progress struct {
+	ChallengeID string
+	SolvedAt    time.Time
+}
+
 type Backend struct{ db *sql.DB }
 
 type Catalog struct{ db *sql.DB }
@@ -165,6 +170,50 @@ func (s *Backend) FindUserByUsername(ctx context.Context, username string) (User
 func (s *Backend) FindUserByID(ctx context.Context, id int64) (User, error) {
 	return scanUser(s.db.QueryRowContext(ctx,
 		"SELECT id, username, password_hash, role, created_at FROM users WHERE id = ?", id))
+}
+
+func (s *Backend) RecordSubmission(ctx context.Context, userID int64, challengeID string, correct bool) error {
+	transaction, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin submission: %w", err)
+	}
+	defer transaction.Rollback()
+	if _, err := transaction.ExecContext(ctx,
+		"INSERT INTO submissions (user_id, challenge_id, correct) VALUES (?, ?, ?)", userID, challengeID, correct); err != nil {
+		return fmt.Errorf("insert submission: %w", err)
+	}
+	if correct {
+		if _, err := transaction.ExecContext(ctx, `
+INSERT INTO progress (user_id, challenge_id) VALUES (?, ?)
+ON CONFLICT(user_id, challenge_id) DO NOTHING`, userID, challengeID); err != nil {
+			return fmt.Errorf("record progress: %w", err)
+		}
+	}
+	if err := transaction.Commit(); err != nil {
+		return fmt.Errorf("commit submission: %w", err)
+	}
+	return nil
+}
+
+func (s *Backend) ListProgress(ctx context.Context, userID int64) ([]Progress, error) {
+	rows, err := s.db.QueryContext(ctx,
+		"SELECT challenge_id, solved_at FROM progress WHERE user_id = ? ORDER BY solved_at, challenge_id", userID)
+	if err != nil {
+		return nil, fmt.Errorf("query progress: %w", err)
+	}
+	defer rows.Close()
+	var progress []Progress
+	for rows.Next() {
+		var item Progress
+		if err := rows.Scan(&item.ChallengeID, &item.SolvedAt); err != nil {
+			return nil, fmt.Errorf("scan progress: %w", err)
+		}
+		progress = append(progress, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate progress: %w", err)
+	}
+	return progress, nil
 }
 
 type rowScanner interface{ Scan(...any) error }

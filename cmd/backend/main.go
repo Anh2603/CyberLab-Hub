@@ -9,10 +9,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	catalogv1 "github.com/Anh2603/CyberLab-Hub/gen/catalog/v1"
 	"github.com/Anh2603/CyberLab-Hub/internal/auth"
 	"github.com/Anh2603/CyberLab-Hub/internal/backend"
 	"github.com/Anh2603/CyberLab-Hub/internal/config"
 	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -38,10 +41,25 @@ func main() {
 		logger.Info("administrator account created", "username", cfg.BootstrapAdmin)
 	}
 	tokens := auth.NewManager(cfg.JWTSecret, cfg.JWTTTL)
+	catalogConnection, err := grpc.NewClient(cfg.CatalogGRPCAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(1<<20),
+			grpc.MaxCallSendMsgSize(1<<20),
+		))
+	if err != nil {
+		logger.Error("catalog client initialization failed", "error", err)
+		os.Exit(1)
+	}
+	defer catalogConnection.Close()
+	catalogClient := catalogv1.NewCatalogServiceClient(catalogConnection)
 
 	server := &http.Server{
-		Addr:              cfg.HTTPAddr,
-		Handler:           backend.NewRouter(backend.Dependencies{Accounts: accounts, Tokens: tokens}),
+		Addr: cfg.HTTPAddr,
+		Handler: backend.NewRouter(backend.Dependencies{
+			Accounts: accounts, Tokens: tokens, Catalog: catalogClient,
+			Progress: accounts, RPCTimeout: cfg.GRPCTimeout,
+		}),
 		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 	}
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/Anh2603/CyberLab-Hub/internal/auth"
 	"github.com/Anh2603/CyberLab-Hub/internal/store"
@@ -20,13 +21,16 @@ type AccountStore interface {
 }
 
 type Dependencies struct {
-	Accounts AccountStore
-	Tokens   *auth.Manager
+	Accounts   AccountStore
+	Tokens     *auth.Manager
+	Catalog    CatalogClient
+	Progress   ProgressStore
+	RPCTimeout time.Duration
 }
 
 func NewRouter(deps Dependencies) *gin.Engine {
 	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
+	router.Use(gin.Logger(), gin.Recovery(), limitRequestBody(64<<10))
 	router.GET("/api/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"service": "cyberlab-backend",
@@ -39,10 +43,21 @@ func NewRouter(deps Dependencies) *gin.Engine {
 	router.POST("/api/auth/login", handler.login)
 	authenticated := router.Group("/api", handler.authenticate)
 	authenticated.GET("/me", handler.me)
-	authenticated.GET("/admin/health", handler.requireAdmin, func(c *gin.Context) {
+	admin := authenticated.Group("/admin", handler.requireAdmin)
+	admin.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "scope": "admin"})
 	})
+	challengeHandler{catalog: deps.Catalog, progress: deps.Progress, timeout: deps.RPCTimeout}.register(authenticated, admin)
 	return router
+}
+
+func limitRequestBody(maxBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Body != nil {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+		}
+		c.Next()
+	}
 }
 
 type accountHandler struct {

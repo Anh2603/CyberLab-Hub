@@ -12,7 +12,7 @@ The project is designed to demonstrate five network protocols through connected 
 
 ## Project status
 
-Phase 3 is implemented. The repository provides runnable backend, catalog, and terminal UI entry points, separate SQLite databases, account authentication and authorization, and a Protocol Buffers gRPC challenge catalog with seeded synthetic exercises. Product features are added incrementally according to the roadmap.
+Phase 4 is implemented. The backend exposes an authenticated HTTP challenge workflow backed by the independent gRPC catalog: learners can search, inspect, submit answers, and review persisted progress, while administrators can publish and archive challenges. Product features are added incrementally according to the roadmap.
 
 ## Intended architecture
 
@@ -108,6 +108,19 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.2
 $env:PATH = "$env:GOBIN;$env:PATH"
 go run github.com/bufbuild/buf/cmd/buf@v1.75.0 generate
 ```
+
+## Challenge HTTP API
+
+All routes below require a bearer token:
+
+- `GET /api/challenges` searches published challenges; optional query parameters are `query`, `category`, and `difficulty`.
+- `GET /api/challenges/:id` returns one published challenge.
+- `POST /api/challenges/:id/submissions` verifies `{"answer":"..."}` and records every attempt.
+- `GET /api/progress` returns only challenges solved by the authenticated learner.
+- `POST /api/admin/challenges` publishes a challenge and is administrator-only.
+- `DELETE /api/admin/challenges/:id` archives a challenge and is administrator-only.
+
+Each backend-to-catalog call has a bounded deadline. If the catalog is stopped, the backend returns a controlled `503` or `504` response instead of hanging. Request bodies and gRPC messages are size-limited.
 
 ## Security principles
 

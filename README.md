@@ -12,7 +12,7 @@ The project is designed to demonstrate five network protocols through connected 
 
 ## Project status
 
-Planning and architecture phase. No production-ready implementation is available yet.
+Phase 1 foundation is implemented. The repository currently provides runnable backend, catalog, and terminal UI entry points, configuration validation, health endpoints, graceful shutdown, and automated tests. Product features are added incrementally according to the roadmap.
 
 ## Intended architecture
 
@@ -60,6 +60,29 @@ All seed challenges and datasets will be local and intentionally created for lea
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Roadmap](docs/ROADMAP.md)
+
+## Run the Phase 1 foundation
+
+Requirements: Go 1.26 or later.
+
+Create a local `.env` from `.env.example` and provide a JWT secret containing at least 32 characters. Environment files are intentionally ignored by Git.
+
+Start each service in a separate terminal:
+
+```powershell
+$env:JWT_SECRET = "replace-with-a-random-secret-at-least-32-characters"
+go run ./cmd/catalog
+go run ./cmd/backend
+go run ./cmd/tui
+```
+
+The backend health endpoint is available at `http://localhost:8080/api/health`. Run the checks with:
+
+```powershell
+go test ./...
+go vet ./...
+go build ./cmd/backend ./cmd/catalog ./cmd/tui
+```
 
 ## Security principles
 

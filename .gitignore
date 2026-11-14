@@ -12,6 +12,7 @@
 data/
 
 # Go build and test artifacts
+.cache/
 bin/
 dist/
 *.exe

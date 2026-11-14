@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	catalogv1 "github.com/Anh2603/CyberLab-Hub/gen/catalog/v1"
+	"github.com/Anh2603/CyberLab-Hub/internal/catalog"
 	"github.com/Anh2603/CyberLab-Hub/internal/config"
 	"github.com/Anh2603/CyberLab-Hub/internal/store"
 	"google.golang.org/grpc"
@@ -29,6 +31,10 @@ func main() {
 		os.Exit(1)
 	}
 	defer catalogStore.Close()
+	if err := catalog.SeedDefaults(context.Background(), catalogStore); err != nil {
+		logger.Error("catalog seed failed", "error", err)
+		os.Exit(1)
+	}
 
 	listener, err := net.Listen("tcp", cfg.ListenAddr)
 	if err != nil {
@@ -36,9 +42,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(
+		grpc.MaxRecvMsgSize(1<<20),
+		grpc.MaxSendMsgSize(1<<20),
+	)
+	catalogv1.RegisterCatalogServiceServer(server, catalog.NewServer(catalogStore))
 	healthServer := health.NewServer()
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+	healthServer.SetServingStatus(catalog.ServiceName, grpc_health_v1.HealthCheckResponse_SERVING)
 	grpc_health_v1.RegisterHealthServer(server, healthServer)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -59,6 +70,7 @@ func main() {
 	}
 
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_NOT_SERVING)
+	healthServer.SetServingStatus(catalog.ServiceName, grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 	stopped := make(chan struct{})
 	go func() {
 		server.GracefulStop()

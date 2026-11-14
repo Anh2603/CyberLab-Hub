@@ -14,7 +14,7 @@ const (
 	defaultHTTPAddr       = ":8080"
 	defaultTCPAddr        = ":9090"
 	defaultUDPAddr        = ":9091"
-	defaultCatalogAddr    = ":9092"
+	defaultCatalogAddr    = "127.0.0.1:9092"
 	defaultCatalogTarget  = "localhost:9092"
 	defaultBackendURL     = "http://localhost:8080"
 	defaultShutdownPeriod = 5 * time.Second

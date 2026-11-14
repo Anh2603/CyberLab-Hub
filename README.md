@@ -12,7 +12,7 @@ The project is designed to demonstrate five network protocols through connected 
 
 ## Project status
 
-Phase 2 is implemented. The repository provides runnable backend, catalog, and terminal UI entry points, separate SQLite databases, account registration and login, bcrypt password hashing, JWT sessions, learner/admin authorization, health endpoints, graceful shutdown, and automated tests. Product features are added incrementally according to the roadmap.
+Phase 3 is implemented. The repository provides runnable backend, catalog, and terminal UI entry points, separate SQLite databases, account authentication and authorization, and a Protocol Buffers gRPC challenge catalog with seeded synthetic exercises. Product features are added incrementally according to the roadmap.
 
 ## Intended architecture
 
@@ -92,6 +92,22 @@ go build ./cmd/backend ./cmd/catalog ./cmd/tui
 - `GET /api/admin/health` demonstrates administrator-only authorization.
 
 To create the first administrator, set `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` together before starting the backend. The operation is idempotent: it creates the named administrator once and never replaces an existing learner. Remove both variables after the account has been created.
+
+## Challenge catalog gRPC API
+
+The catalog service implements `SearchChallenges`, `GetChallenge`, `VerifyAnswer`, `PublishChallenge`, and `ArchiveChallenge`. Expected answers remain in the catalog database and are never included in public Protocol Buffer messages. Three synthetic challenges are seeded only when the catalog is empty.
+
+The catalog listens on loopback by default because its publication methods are intended only for the trusted backend. Keep it on a private interface unless transport authentication is added.
+
+Protocol Buffer source is stored under `proto/`; generated Go stubs under `gen/` are committed for reproducible builds. To regenerate them without installing `protoc` globally:
+
+```powershell
+$env:GOBIN = "$PWD\.cache\bin"
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.2
+$env:PATH = "$env:GOBIN;$env:PATH"
+go run github.com/bufbuild/buf/cmd/buf@v1.75.0 generate
+```
 
 ## Security principles
 

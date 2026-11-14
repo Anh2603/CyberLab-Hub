@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package catalog.v1;
+
+option go_package = "github.com/Anh2603/CyberLab-Hub/gen/catalog/v1;catalogv1";
+
+service CatalogService {
+  rpc SearchChallenges(SearchChallengesRequest) returns (SearchChallengesResponse);
+  rpc GetChallenge(GetChallengeRequest) returns (GetChallengeResponse);
+  rpc VerifyAnswer(VerifyAnswerRequest) returns (VerifyAnswerResponse);
+  rpc PublishChallenge(PublishChallengeRequest) returns (PublishChallengeResponse);
+  rpc ArchiveChallenge(ArchiveChallengeRequest) returns (ArchiveChallengeResponse);
+}
+
+message Challenge {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string category = 4;
+  string difficulty = 5;
+  bool published = 6;
+}
+
+message SearchChallengesRequest {
+  string query = 1;
+  string category = 2;
+  string difficulty = 3;
+}
+
+message SearchChallengesResponse {
+  repeated Challenge challenges = 1;
+}
+
+message GetChallengeRequest {
+  string id = 1;
+  bool include_unpublished = 2;
+}
+
+message GetChallengeResponse {
+  Challenge challenge = 1;
+}
+
+message VerifyAnswerRequest {
+  string challenge_id = 1;
+  string answer = 2;
+}
+
+message VerifyAnswerResponse {
+  bool correct = 1;
+}
+
+message PublishChallengeRequest {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string category = 4;
+  string difficulty = 5;
+  string answer = 6;
+}
+
+message PublishChallengeResponse {
+  Challenge challenge = 1;
+}
+
+message ArchiveChallengeRequest {
+  string id = 1;
+}
+
+message ArchiveChallengeResponse {
+  Challenge challenge = 1;
+}

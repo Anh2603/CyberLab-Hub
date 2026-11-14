@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	ErrUserNotFound = errors.New("user not found")
-	ErrUserExists   = errors.New("user already exists")
+	ErrUserNotFound      = errors.New("user not found")
+	ErrUserExists        = errors.New("user already exists")
+	ErrChallengeNotFound = errors.New("challenge not found")
 )
 
 type User struct {
@@ -29,6 +30,18 @@ type User struct {
 type Backend struct{ db *sql.DB }
 
 type Catalog struct{ db *sql.DB }
+
+type Challenge struct {
+	ID          string
+	Title       string
+	Description string
+	Category    string
+	Difficulty  string
+	AnswerHash  []byte
+	Published   bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
 
 func OpenBackend(ctx context.Context, path string) (*Backend, error) {
 	db, err := open(ctx, path)
@@ -170,4 +183,113 @@ func scanUser(row rowScanner) (User, error) {
 func isConstraintError(err error) bool {
 	var coded interface{ Code() int }
 	return errors.As(err, &coded) && coded.Code()&0xff == 19
+}
+
+func (s *Catalog) ChallengeCount(ctx context.Context) (int, error) {
+	var count int
+	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM challenges").Scan(&count); err != nil {
+		return 0, fmt.Errorf("count challenges: %w", err)
+	}
+	return count, nil
+}
+
+func (s *Catalog) PublishChallenge(ctx context.Context, challenge Challenge) (Challenge, error) {
+	_, err := s.db.ExecContext(ctx, `
+INSERT INTO challenges (id, title, description, category, difficulty, answer_hash, published)
+VALUES (?, ?, ?, ?, ?, ?, 1)
+ON CONFLICT(id) DO UPDATE SET
+    title = excluded.title,
+    description = excluded.description,
+    category = excluded.category,
+    difficulty = excluded.difficulty,
+    answer_hash = excluded.answer_hash,
+    published = 1,
+    updated_at = CURRENT_TIMESTAMP`,
+		challenge.ID, challenge.Title, challenge.Description, challenge.Category,
+		challenge.Difficulty, challenge.AnswerHash)
+	if err != nil {
+		return Challenge{}, fmt.Errorf("publish challenge: %w", err)
+	}
+	return s.GetChallenge(ctx, challenge.ID, true)
+}
+
+func (s *Catalog) ArchiveChallenge(ctx context.Context, id string) (Challenge, error) {
+	result, err := s.db.ExecContext(ctx,
+		"UPDATE challenges SET published = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?", id)
+	if err != nil {
+		return Challenge{}, fmt.Errorf("archive challenge: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return Challenge{}, fmt.Errorf("read archive result: %w", err)
+	}
+	if affected == 0 {
+		return Challenge{}, ErrChallengeNotFound
+	}
+	return s.GetChallenge(ctx, id, true)
+}
+
+func (s *Catalog) GetChallenge(ctx context.Context, id string, includeUnpublished bool) (Challenge, error) {
+	query := `SELECT id, title, description, category, difficulty, answer_hash, published, created_at, updated_at
+FROM challenges WHERE id = ?`
+	if !includeUnpublished {
+		query += " AND published = 1"
+	}
+	return scanChallenge(s.db.QueryRowContext(ctx, query, id))
+}
+
+func (s *Catalog) SearchChallenges(ctx context.Context, text, category, difficulty string) ([]Challenge, error) {
+	query := `SELECT id, title, description, category, difficulty, answer_hash, published, created_at, updated_at
+FROM challenges WHERE published = 1`
+	args := make([]any, 0, 3)
+	if text != "" {
+		query += ` AND (title LIKE ? ESCAPE '\' OR description LIKE ? ESCAPE '\')`
+		pattern := "%" + escapeLike(text) + "%"
+		args = append(args, pattern, pattern)
+	}
+	if category != "" {
+		query += " AND category = ?"
+		args = append(args, category)
+	}
+	if difficulty != "" {
+		query += " AND difficulty = ?"
+		args = append(args, difficulty)
+	}
+	query += " ORDER BY difficulty, title, id"
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("search challenges: %w", err)
+	}
+	defer rows.Close()
+	var challenges []Challenge
+	for rows.Next() {
+		challenge, err := scanChallenge(rows)
+		if err != nil {
+			return nil, err
+		}
+		challenges = append(challenges, challenge)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate challenges: %w", err)
+	}
+	return challenges, nil
+}
+
+func scanChallenge(row rowScanner) (Challenge, error) {
+	var challenge Challenge
+	if err := row.Scan(&challenge.ID, &challenge.Title, &challenge.Description, &challenge.Category,
+		&challenge.Difficulty, &challenge.AnswerHash, &challenge.Published,
+		&challenge.CreatedAt, &challenge.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Challenge{}, ErrChallengeNotFound
+		}
+		return Challenge{}, fmt.Errorf("scan challenge: %w", err)
+	}
+	return challenge, nil
+}
+
+func escapeLike(value string) string {
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, `%`, `\%`)
+	return strings.ReplaceAll(value, `_`, `\_`)
 }

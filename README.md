@@ -12,7 +12,7 @@ The project is designed to demonstrate five network protocols through connected 
 
 ## Project status
 
-Phase 4 is implemented. The backend exposes an authenticated HTTP challenge workflow backed by the independent gRPC catalog: learners can search, inspect, submit answers, and review persisted progress, while administrators can publish and archive challenges. Product features are added incrementally according to the roadmap.
+Phase 5 is implemented. In addition to the authenticated HTTP and gRPC challenge workflow, the backend now synchronizes solved-challenge events over private authenticated TCP sessions belonging to the same learner. Product features are added incrementally according to the roadmap.
 
 ## Intended architecture
 
@@ -121,6 +121,16 @@ All routes below require a bearer token:
 - `DELETE /api/admin/challenges/:id` archives a challenge and is administrator-only.
 
 Each backend-to-catalog call has a bounded deadline. If the catalog is stopped, the backend returns a controlled `503` or `504` response instead of hanging. Request bodies and gRPC messages are size-limited.
+
+## TCP progress synchronization
+
+Connect to `BACKEND_TCP_ADDR` and send one newline-delimited authentication message within five seconds:
+
+```json
+{"type":"authenticate","token":"<JWT>","session_id":"<unique-client-session-id>"}
+```
+
+The server acknowledges with `{"type":"authenticated",...}`. After a correct HTTP submission commits to SQLite, other connected sessions for that learner receive a newline-delimited `progress` event. The submitting client should send its TCP session ID in the HTTP `X-Session-ID` header so the server can exclude that origin. Sessions from other users never receive the event. Messages are capped at 8 KiB, idle sessions expire, slow writers are disconnected, and `{"type":"ping"}` receives `{"type":"pong"}`.
 
 ## Security principles
 

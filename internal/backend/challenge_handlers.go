@@ -28,9 +28,14 @@ type ProgressStore interface {
 	ListProgress(context.Context, int64) ([]store.Progress, error)
 }
 
+type ProgressPublisher interface {
+	PublishProgress(userID int64, originSessionID, challengeID string, solvedAt time.Time)
+}
+
 type challengeHandler struct {
 	catalog  CatalogClient
 	progress ProgressStore
+	events   ProgressPublisher
 	timeout  time.Duration
 }
 
@@ -110,6 +115,9 @@ func (h challengeHandler) submit(c *gin.Context) {
 	if err := h.progress.RecordSubmission(c.Request.Context(), identity.UserID, c.Param("id"), result.GetCorrect()); err != nil {
 		writeError(c, http.StatusInternalServerError, "could not record submission")
 		return
+	}
+	if result.GetCorrect() && h.events != nil {
+		h.events.PublishProgress(identity.UserID, c.GetHeader("X-Session-ID"), c.Param("id"), time.Now())
 	}
 	c.JSON(http.StatusOK, gin.H{"correct": result.GetCorrect()})
 }

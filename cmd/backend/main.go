@@ -14,6 +14,7 @@ import (
 	"github.com/Anh2603/CyberLab-Hub/internal/backend"
 	"github.com/Anh2603/CyberLab-Hub/internal/config"
 	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	tcpsync "github.com/Anh2603/CyberLab-Hub/internal/tcp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -41,6 +42,7 @@ func main() {
 		logger.Info("administrator account created", "username", cfg.BootstrapAdmin)
 	}
 	tokens := auth.NewManager(cfg.JWTSecret, cfg.JWTTTL)
+	progressServer := tcpsync.NewServer(tokens)
 	catalogConnection, err := grpc.NewClient(cfg.CatalogGRPCAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
@@ -58,7 +60,7 @@ func main() {
 		Addr: cfg.HTTPAddr,
 		Handler: backend.NewRouter(backend.Dependencies{
 			Accounts: accounts, Tokens: tokens, Catalog: catalogClient,
-			Progress: accounts, RPCTimeout: cfg.GRPCTimeout,
+			Progress: accounts, Events: progressServer, RPCTimeout: cfg.GRPCTimeout,
 		}),
 		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 	}
@@ -67,9 +69,14 @@ func main() {
 	defer stop()
 
 	serveErrors := make(chan error, 1)
+	tcpErrors := make(chan error, 1)
 	go func() {
 		logger.Info("backend listening", "http_addr", cfg.HTTPAddr)
 		serveErrors <- server.ListenAndServe()
+	}()
+	go func() {
+		logger.Info("progress sync listening", "tcp_addr", cfg.TCPAddr)
+		tcpErrors <- progressServer.ListenAndServe(ctx, cfg.TCPAddr)
 	}()
 
 	select {
@@ -78,6 +85,12 @@ func main() {
 	case err := <-serveErrors:
 		if !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("backend stopped unexpectedly", "error", err)
+			os.Exit(1)
+		}
+		return
+	case err := <-tcpErrors:
+		if err != nil {
+			logger.Error("progress sync stopped unexpectedly", "error", err)
 			os.Exit(1)
 		}
 		return

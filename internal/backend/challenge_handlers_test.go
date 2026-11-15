@@ -50,6 +50,9 @@ func TestHTTPChallengeWorkflow(t *testing.T) {
 	if wrong.Code != http.StatusOK || !bytes.Contains(wrong.Body.Bytes(), []byte(`"correct":false`)) {
 		t.Fatalf("wrong submission status = %d, body = %s", wrong.Code, wrong.Body.String())
 	}
+	if len(harness.events.challengeIDs) != 1 || harness.events.challengeIDs[0] != "dns-log-basics" {
+		t.Fatalf("published progress events = %#v", harness.events.challengeIDs)
+	}
 	progress := performJSON(harness.router, http.MethodGet, "/api/progress", "", session.Token)
 	if progress.Code != http.StatusOK || !bytes.Contains(progress.Body.Bytes(), []byte("dns-log-basics")) || bytes.Contains(progress.Body.Bytes(), []byte("file-signature")) {
 		t.Fatalf("progress status = %d, body = %s", progress.Code, progress.Body.String())
@@ -106,6 +109,7 @@ type challengeHarness struct {
 	grpcServer *grpc.Server
 	connection *grpc.ClientConn
 	listener   *bufconn.Listener
+	events     *eventRecorder
 }
 
 func newChallengeHarness(t *testing.T, timeout time.Duration) *challengeHarness {
@@ -144,16 +148,26 @@ func newChallengeHarness(t *testing.T, timeout time.Duration) *challengeHarness 
 		t.Fatalf("grpc.NewClient() error = %v", err)
 	}
 	tokens := auth.NewManager("01234567890123456789012345678901", time.Hour)
+	events := &eventRecorder{}
 	router := NewRouter(Dependencies{
 		Accounts: accounts, Tokens: tokens, Catalog: catalogv1.NewCatalogServiceClient(connection),
-		Progress: accounts, RPCTimeout: timeout,
+		Progress: accounts, Events: events, RPCTimeout: timeout,
 	})
 	harness := &challengeHarness{
 		router: router, accounts: accounts, tokens: tokens, grpcServer: grpcServer,
 		connection: connection, listener: listener,
+		events: events,
 	}
 	t.Cleanup(func() { _ = catalogStore.Close() })
 	return harness
+}
+
+type eventRecorder struct {
+	challengeIDs []string
+}
+
+func (r *eventRecorder) PublishProgress(_ int64, _ string, challengeID string, _ time.Time) {
+	r.challengeIDs = append(r.challengeIDs, challengeID)
 }
 
 func (h *challengeHarness) close() {

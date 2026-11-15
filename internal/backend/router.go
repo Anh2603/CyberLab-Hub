@@ -25,6 +25,7 @@ type Dependencies struct {
 	Tokens     *auth.Manager
 	Catalog    CatalogClient
 	Progress   ProgressStore
+	Events     ProgressPublisher
 	RPCTimeout time.Duration
 }
 
@@ -47,7 +48,9 @@ func NewRouter(deps Dependencies) *gin.Engine {
 	admin.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "scope": "admin"})
 	})
-	challengeHandler{catalog: deps.Catalog, progress: deps.Progress, timeout: deps.RPCTimeout}.register(authenticated, admin)
+	challengeHandler{
+		catalog: deps.Catalog, progress: deps.Progress, events: deps.Events, timeout: deps.RPCTimeout,
+	}.register(authenticated, admin)
 	return router
 }
 

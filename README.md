@@ -12,7 +12,7 @@ The project is designed to demonstrate five network protocols through connected 
 
 ## Project status
 
-Phase 6 is implemented. The platform now uses HTTP, TCP, UDP, and gRPC for distinct product responsibilities: authenticated challenge workflows, private progress synchronization, best-effort publication notifications, and typed backend-to-catalog calls. Product features are added incrementally according to the roadmap.
+Phase 7 is implemented. All five required protocols now have connected product responsibilities: HTTP challenge workflows, TCP progress synchronization, UDP publication notifications, WebSocket discussion rooms, and gRPC catalog calls. Product features are added incrementally according to the roadmap.
 
 ## Intended architecture
 
@@ -143,6 +143,16 @@ Send an authenticated datagram to `BACKEND_UDP_ADDR`:
 The server replies with a `subscribed` acknowledgement and an expiration time. A successful administrator publication then produces a best-effort `challenge_published` datagram containing public challenge metadata. Refresh the subscription before it expires, or send the same authenticated message with `"type":"unsubscribe"`. Invalid tokens and datagrams larger than 8 KiB are rejected; expired or unreachable receivers never block publication or crash the backend.
 
 All listeners bind to loopback by default. Environment variables can override the addresses for a controlled lab network, but the protocols are not configured for public-internet exposure.
+
+## WebSocket discussion rooms
+
+Connect to `ws://127.0.0.1:8080/api/ws/rooms/:room` with the normal `Authorization: Bearer <JWT>` header. Room names are chosen from the URL and validated by the server; clients cannot redirect a message into another room. Send text frames containing:
+
+```json
+{"body":"A short discussion message"}
+```
+
+Authenticated participants in that room receive a server-authored message containing the verified username, room, body, and timestamp. Other rooms are isolated. The server enforces message/read limits, ping/pong liveness, bounded write times, slow-client removal, safe origin checks, and disconnect cleanup.
 
 ## Security principles
 

@@ -16,6 +16,7 @@ import (
 	"github.com/Anh2603/CyberLab-Hub/internal/store"
 	tcpsync "github.com/Anh2603/CyberLab-Hub/internal/tcp"
 	udpnotify "github.com/Anh2603/CyberLab-Hub/internal/udp"
+	realtime "github.com/Anh2603/CyberLab-Hub/internal/websocket"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -45,6 +46,7 @@ func main() {
 	tokens := auth.NewManager(cfg.JWTSecret, cfg.JWTTTL)
 	progressServer := tcpsync.NewServer(tokens)
 	notificationServer := udpnotify.NewServer(tokens)
+	discussionHub := realtime.NewHub()
 	catalogConnection, err := grpc.NewClient(cfg.CatalogGRPCAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
@@ -63,7 +65,7 @@ func main() {
 		Handler: backend.NewRouter(backend.Dependencies{
 			Accounts: accounts, Tokens: tokens, Catalog: catalogClient,
 			Progress: accounts, Events: progressServer, Notifier: notificationServer,
-			RPCTimeout: cfg.GRPCTimeout,
+			Discussions: discussionHub, RPCTimeout: cfg.GRPCTimeout,
 		}),
 		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 	}

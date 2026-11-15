@@ -21,13 +21,14 @@ type AccountStore interface {
 }
 
 type Dependencies struct {
-	Accounts   AccountStore
-	Tokens     *auth.Manager
-	Catalog    CatalogClient
-	Progress   ProgressStore
-	Events     ProgressPublisher
-	Notifier   PublicationNotifier
-	RPCTimeout time.Duration
+	Accounts    AccountStore
+	Tokens      *auth.Manager
+	Catalog     CatalogClient
+	Progress    ProgressStore
+	Events      ProgressPublisher
+	Notifier    PublicationNotifier
+	Discussions DiscussionHandler
+	RPCTimeout  time.Duration
 }
 
 func NewRouter(deps Dependencies) *gin.Engine {
@@ -53,7 +54,14 @@ func NewRouter(deps Dependencies) *gin.Engine {
 		catalog: deps.Catalog, progress: deps.Progress, events: deps.Events,
 		notifier: deps.Notifier, timeout: deps.RPCTimeout,
 	}.register(authenticated, admin)
+	if deps.Discussions != nil {
+		authenticated.GET("/ws/rooms/:room", deps.Discussions.Handle)
+	}
 	return router
+}
+
+type DiscussionHandler interface {
+	Handle(*gin.Context)
 }
 
 func limitRequestBody(maxBytes int64) gin.HandlerFunc {

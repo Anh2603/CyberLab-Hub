@@ -1,12 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/Anh2603/CyberLab-Hub/internal/config"
-	"github.com/rivo/tview"
+	cybertui "github.com/Anh2603/CyberLab-Hub/internal/tui"
 )
 
 func main() {
@@ -17,18 +16,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	status := tview.NewTextView().
-		SetDynamicColors(true).
-		SetTextAlign(tview.AlignCenter)
-	status.SetBorder(true).SetTitle(" CyberLab Hub ")
-	status.SetText(fmt.Sprintf(
-		"[green]Phase 1 foundation is running[-]\n\nBackend: %s\nTCP: %s\nUDP: %s\n\nPress Ctrl+C to exit.",
-		cfg.BackendHTTPURL,
-		cfg.BackendTCPAddr,
-		cfg.BackendUDPAddr,
-	))
-
-	if err := tview.NewApplication().SetRoot(status, true).Run(); err != nil {
+	client, err := cybertui.NewClient(cfg.BackendHTTPURL, cfg.BackendTCPAddr, cfg.BackendUDPAddr)
+	if err != nil {
+		logger.Error("invalid TUI client configuration", "error", err)
+		os.Exit(1)
+	}
+	if err := cybertui.NewUI(client).Run(); err != nil {
 		logger.Error("TUI stopped", "error", err)
 		os.Exit(1)
 	}

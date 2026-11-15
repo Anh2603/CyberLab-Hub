@@ -12,7 +12,7 @@ The project is designed to demonstrate five network protocols through connected 
 
 ## Project status
 
-Phase 7 is implemented. All five required protocols now have connected product responsibilities: HTTP challenge workflows, TCP progress synchronization, UDP publication notifications, WebSocket discussion rooms, and gRPC catalog calls. Product features are added incrementally according to the roadmap.
+Phase 8 is implemented. The keyboard-driven terminal client exposes the complete learner workflow and administrator publication form while all five required protocols retain connected product responsibilities. The remaining phase focuses on final verification, demo material, and project-report evidence.
 
 ## Intended architecture
 
@@ -153,6 +153,19 @@ Connect to `ws://127.0.0.1:8080/api/ws/rooms/:room` with the normal `Authorizati
 ```
 
 Authenticated participants in that room receive a server-authored message containing the verified username, room, body, and timestamp. Other rooms are isolated. The server enforces message/read limits, ping/pong liveness, bounded write times, slow-client removal, safe origin checks, and disconnect cleanup.
+
+## Terminal UI
+
+Start the catalog and backend first, then run `go run ./cmd/tui`. The TUI provides:
+
+- learner registration and login;
+- challenge search, details, answer submission, and persisted progress;
+- live TCP progress events and UDP publication notifications;
+- authenticated WebSocket discussion rooms;
+- an administrator-only publication form;
+- visible connection and error status without blocking the UI event loop.
+
+Each TUI process generates unique TCP and UDP client identifiers, so multiple terminals can run simultaneously. JWTs remain in memory and are never written to disk or logs.
 
 ## Security principles
 

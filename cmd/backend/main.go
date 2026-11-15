@@ -15,6 +15,7 @@ import (
 	"github.com/Anh2603/CyberLab-Hub/internal/config"
 	"github.com/Anh2603/CyberLab-Hub/internal/store"
 	tcpsync "github.com/Anh2603/CyberLab-Hub/internal/tcp"
+	udpnotify "github.com/Anh2603/CyberLab-Hub/internal/udp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -43,6 +44,7 @@ func main() {
 	}
 	tokens := auth.NewManager(cfg.JWTSecret, cfg.JWTTTL)
 	progressServer := tcpsync.NewServer(tokens)
+	notificationServer := udpnotify.NewServer(tokens)
 	catalogConnection, err := grpc.NewClient(cfg.CatalogGRPCAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
@@ -60,7 +62,8 @@ func main() {
 		Addr: cfg.HTTPAddr,
 		Handler: backend.NewRouter(backend.Dependencies{
 			Accounts: accounts, Tokens: tokens, Catalog: catalogClient,
-			Progress: accounts, Events: progressServer, RPCTimeout: cfg.GRPCTimeout,
+			Progress: accounts, Events: progressServer, Notifier: notificationServer,
+			RPCTimeout: cfg.GRPCTimeout,
 		}),
 		ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 	}
@@ -70,9 +73,14 @@ func main() {
 
 	serveErrors := make(chan error, 1)
 	tcpErrors := make(chan error, 1)
+	udpErrors := make(chan error, 1)
 	go func() {
 		logger.Info("backend listening", "http_addr", cfg.HTTPAddr)
 		serveErrors <- server.ListenAndServe()
+	}()
+	go func() {
+		logger.Info("publication notifications listening", "udp_addr", cfg.UDPAddr)
+		udpErrors <- notificationServer.ListenAndServe(ctx, cfg.UDPAddr)
 	}()
 	go func() {
 		logger.Info("progress sync listening", "tcp_addr", cfg.TCPAddr)
@@ -91,6 +99,12 @@ func main() {
 	case err := <-tcpErrors:
 		if err != nil {
 			logger.Error("progress sync stopped unexpectedly", "error", err)
+			os.Exit(1)
+		}
+		return
+	case err := <-udpErrors:
+		if err != nil {
+			logger.Error("publication notifications stopped unexpectedly", "error", err)
 			os.Exit(1)
 		}
 		return

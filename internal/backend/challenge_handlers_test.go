@@ -85,6 +85,9 @@ func TestAdminCanPublishAndLearnerCannot(t *testing.T) {
 	if published.Code != http.StatusCreated || !bytes.Contains(published.Body.Bytes(), []byte("new-log-task")) {
 		t.Fatalf("admin publish status = %d, body = %s", published.Code, published.Body.String())
 	}
+	if len(harness.notifications.ids) != 1 || harness.notifications.ids[0] != "new-log-task" {
+		t.Fatalf("publication notifications = %#v", harness.notifications.ids)
+	}
 }
 
 func TestStoppedCatalogReturnsBoundedFailure(t *testing.T) {
@@ -103,13 +106,14 @@ func TestStoppedCatalogReturnsBoundedFailure(t *testing.T) {
 }
 
 type challengeHarness struct {
-	router     http.Handler
-	accounts   *store.Backend
-	tokens     *auth.Manager
-	grpcServer *grpc.Server
-	connection *grpc.ClientConn
-	listener   *bufconn.Listener
-	events     *eventRecorder
+	router        http.Handler
+	accounts      *store.Backend
+	tokens        *auth.Manager
+	grpcServer    *grpc.Server
+	connection    *grpc.ClientConn
+	listener      *bufconn.Listener
+	events        *eventRecorder
+	notifications *notificationRecorder
 }
 
 func newChallengeHarness(t *testing.T, timeout time.Duration) *challengeHarness {
@@ -149,14 +153,16 @@ func newChallengeHarness(t *testing.T, timeout time.Duration) *challengeHarness 
 	}
 	tokens := auth.NewManager("01234567890123456789012345678901", time.Hour)
 	events := &eventRecorder{}
+	notifications := &notificationRecorder{}
 	router := NewRouter(Dependencies{
 		Accounts: accounts, Tokens: tokens, Catalog: catalogv1.NewCatalogServiceClient(connection),
-		Progress: accounts, Events: events, RPCTimeout: timeout,
+		Progress: accounts, Events: events, Notifier: notifications, RPCTimeout: timeout,
 	})
 	harness := &challengeHarness{
 		router: router, accounts: accounts, tokens: tokens, grpcServer: grpcServer,
 		connection: connection, listener: listener,
-		events: events,
+		events:        events,
+		notifications: notifications,
 	}
 	t.Cleanup(func() { _ = catalogStore.Close() })
 	return harness
@@ -168,6 +174,14 @@ type eventRecorder struct {
 
 func (r *eventRecorder) PublishProgress(_ int64, _ string, challengeID string, _ time.Time) {
 	r.challengeIDs = append(r.challengeIDs, challengeID)
+}
+
+type notificationRecorder struct {
+	ids []string
+}
+
+func (r *notificationRecorder) NotifyChallengePublished(id, _, _, _ string) {
+	r.ids = append(r.ids, id)
 }
 
 func (h *challengeHarness) close() {

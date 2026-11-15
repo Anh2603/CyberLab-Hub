@@ -13,8 +13,8 @@ func TestLoadBackendDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadBackend() error = %v", err)
 	}
-	if cfg.HTTPAddr != ":8080" {
-		t.Fatalf("HTTPAddr = %q, want %q", cfg.HTTPAddr, ":8080")
+	if cfg.HTTPAddr != "127.0.0.1:8080" {
+		t.Fatalf("HTTPAddr = %q, want %q", cfg.HTTPAddr, "127.0.0.1:8080")
 	}
 	if cfg.CatalogGRPCAddr != "localhost:9092" {
 		t.Fatalf("CatalogGRPCAddr = %q, want %q", cfg.CatalogGRPCAddr, "localhost:9092")

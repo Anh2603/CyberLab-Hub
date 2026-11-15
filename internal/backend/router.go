@@ -26,6 +26,7 @@ type Dependencies struct {
 	Catalog    CatalogClient
 	Progress   ProgressStore
 	Events     ProgressPublisher
+	Notifier   PublicationNotifier
 	RPCTimeout time.Duration
 }
 
@@ -49,7 +50,8 @@ func NewRouter(deps Dependencies) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "scope": "admin"})
 	})
 	challengeHandler{
-		catalog: deps.Catalog, progress: deps.Progress, events: deps.Events, timeout: deps.RPCTimeout,
+		catalog: deps.Catalog, progress: deps.Progress, events: deps.Events,
+		notifier: deps.Notifier, timeout: deps.RPCTimeout,
 	}.register(authenticated, admin)
 	return router
 }

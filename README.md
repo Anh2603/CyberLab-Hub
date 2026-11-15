@@ -12,7 +12,7 @@ The project is designed to demonstrate five network protocols through connected 
 
 ## Project status
 
-Phase 5 is implemented. In addition to the authenticated HTTP and gRPC challenge workflow, the backend now synchronizes solved-challenge events over private authenticated TCP sessions belonging to the same learner. Product features are added incrementally according to the roadmap.
+Phase 6 is implemented. The platform now uses HTTP, TCP, UDP, and gRPC for distinct product responsibilities: authenticated challenge workflows, private progress synchronization, best-effort publication notifications, and typed backend-to-catalog calls. Product features are added incrementally according to the roadmap.
 
 ## Intended architecture
 
@@ -131,6 +131,18 @@ Connect to `BACKEND_TCP_ADDR` and send one newline-delimited authentication mess
 ```
 
 The server acknowledges with `{"type":"authenticated",...}`. After a correct HTTP submission commits to SQLite, other connected sessions for that learner receive a newline-delimited `progress` event. The submitting client should send its TCP session ID in the HTTP `X-Session-ID` header so the server can exclude that origin. Sessions from other users never receive the event. Messages are capped at 8 KiB, idle sessions expire, slow writers are disconnected, and `{"type":"ping"}` receives `{"type":"pong"}`.
+
+## UDP publication notifications
+
+Send an authenticated datagram to `BACKEND_UDP_ADDR`:
+
+```json
+{"type":"subscribe","token":"<JWT>","client_id":"<unique-client-id>"}
+```
+
+The server replies with a `subscribed` acknowledgement and an expiration time. A successful administrator publication then produces a best-effort `challenge_published` datagram containing public challenge metadata. Refresh the subscription before it expires, or send the same authenticated message with `"type":"unsubscribe"`. Invalid tokens and datagrams larger than 8 KiB are rejected; expired or unreachable receivers never block publication or crash the backend.
+
+All listeners bind to loopback by default. Environment variables can override the addresses for a controlled lab network, but the protocols are not configured for public-internet exposure.
 
 ## Security principles
 

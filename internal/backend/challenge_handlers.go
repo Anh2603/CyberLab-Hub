@@ -32,10 +32,15 @@ type ProgressPublisher interface {
 	PublishProgress(userID int64, originSessionID, challengeID string, solvedAt time.Time)
 }
 
+type PublicationNotifier interface {
+	NotifyChallengePublished(id, title, category, difficulty string)
+}
+
 type challengeHandler struct {
 	catalog  CatalogClient
 	progress ProgressStore
 	events   ProgressPublisher
+	notifier PublicationNotifier
 	timeout  time.Duration
 }
 
@@ -166,7 +171,11 @@ func (h challengeHandler) publish(c *gin.Context) {
 		writeRPCError(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, challengeResponse(response.GetChallenge()))
+	challenge := challengeResponse(response.GetChallenge())
+	if h.notifier != nil {
+		h.notifier.NotifyChallengePublished(challenge.ID, challenge.Title, challenge.Category, challenge.Difficulty)
+	}
+	c.JSON(http.StatusCreated, challenge)
 }
 
 func (h challengeHandler) archive(c *gin.Context) {

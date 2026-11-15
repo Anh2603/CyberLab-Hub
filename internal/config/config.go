@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	defaultHTTPAddr       = ":8080"
-	defaultTCPAddr        = ":9090"
-	defaultUDPAddr        = ":9091"
+	defaultHTTPAddr       = "127.0.0.1:8080"
+	defaultTCPAddr        = "127.0.0.1:9090"
+	defaultUDPAddr        = "127.0.0.1:9091"
 	defaultCatalogAddr    = "127.0.0.1:9092"
 	defaultCatalogTarget  = "localhost:9092"
 	defaultBackendURL     = "http://localhost:8080"
@@ -125,8 +125,8 @@ func LoadCatalog() (Catalog, error) {
 func LoadTUI() (TUI, error) {
 	cfg := TUI{
 		BackendHTTPURL: envOr("BACKEND_HTTP_URL", defaultBackendURL),
-		BackendTCPAddr: envOr("BACKEND_TCP_ADDR", "localhost"+defaultTCPAddr),
-		BackendUDPAddr: envOr("BACKEND_UDP_ADDR", "localhost"+defaultUDPAddr),
+		BackendTCPAddr: envOr("BACKEND_TCP_ADDR", defaultTCPAddr),
+		BackendUDPAddr: envOr("BACKEND_UDP_ADDR", defaultUDPAddr),
 	}
 	parsed, err := url.ParseRequestURI(cfg.BackendHTTPURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {

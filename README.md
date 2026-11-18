@@ -12,7 +12,9 @@ The project is designed to demonstrate five network protocols through connected 
 
 ## Project status
 
-Phase 8 is implemented. The keyboard-driven terminal client exposes the complete learner workflow and administrator publication form while all five required protocols retain connected product responsibilities. The remaining phase focuses on final verification, demo material, and project-report evidence.
+Phases 1-8 are implemented. Phase 9 adds verification evidence, demo instructions, report preparation, and TUI fixes. Final submission still requires a manual terminal demo, the completed report PDF, and approval of the project domain substitution.
+
+> Academic scope: the supplied assignment specification names MangaHub. CyberLab Hub changes the product domain and therefore requires explicit instructor approval before submission. See the assignment-alignment document for the exact semantic differences.
 
 ## Intended architecture
 
@@ -47,7 +49,7 @@ All seed challenges and datasets will be local and intentionally created for lea
 
 ## Technology
 
-- Go 1.25 or later
+- Go 1.26 or later
 - Gin
 - tview
 - SQLite through `database/sql`
@@ -60,19 +62,34 @@ All seed challenges and datasets will be local and intentionally created for lea
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Demo guide](docs/DEMO.md)
+- [Verification record](docs/VERIFICATION.md)
+- [Assignment alignment](docs/ASSIGNMENT_ALIGNMENT.md)
+- [Technical report draft](docs/REPORT_DRAFT.md)
+- [References](docs/REFERENCES.md)
 
-## Run the Phase 1 foundation
+## Run locally
 
-Requirements: Go 1.26 or later.
+Requirements: Go 1.26 or later with automatic toolchain downloads enabled. The project selects Go 1.27.4 through `go.mod` to include the security fixes verified in Phase 9.
 
-Create a local `.env` from `.env.example` and provide a JWT secret containing at least 32 characters. Environment files are intentionally ignored by Git.
+`.env.example` documents the environment variables. The programs do not automatically load `.env` files. Set variables in PowerShell before starting the corresponding program. Local environment files are intentionally ignored by Git.
 
-Start each service in a separate terminal:
+Open three PowerShell terminals in the repository directory. In terminal 1:
 
 ```powershell
-$env:JWT_SECRET = "replace-with-a-random-secret-at-least-32-characters"
 go run ./cmd/catalog
+```
+
+In terminal 2, generate a local secret and start the backend. Keep the same secret across restarts if existing sessions should remain valid:
+
+```powershell
+$env:JWT_SECRET = [guid]::NewGuid().ToString("N")
 go run ./cmd/backend
+```
+
+In terminal 3:
+
+```powershell
 go run ./cmd/tui
 ```
 
@@ -166,6 +183,8 @@ Start the catalog and backend first, then run `go run ./cmd/tui`. The TUI provid
 - visible connection and error status without blocking the UI event loop.
 
 Each TUI process generates unique TCP and UDP client identifiers, so multiple terminals can run simultaneously. JWTs remain in memory and are never written to disk or logs.
+
+In the challenge browser, use F2 to focus the results, F3 to return to search, and Esc to return to the menu. Within forms, use Tab/Shift+Tab and Enter. The terminal should be at least 100 columns by 30 rows.
 
 ## Security principles
 

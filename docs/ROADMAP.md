@@ -2,6 +2,10 @@
 
 The roadmap is organized around working vertical slices. A phase is complete only when its relevant build and tests pass.
 
+## Current handoff - 2026-11-18
+
+Phases 1-8 are implemented. Phase 9 automated checks and draft documentation are available: test/vet/build pass on Go 1.27.4, the vulnerability scan reports zero reachable findings, and the demo/report materials are under `docs/`. Remaining release tasks are manual terminal walkthrough, race verification on a supported host, instructor approval of the CyberLab domain, and completion of the report with real team contribution evidence. The project is a demo candidate, not yet a finalized academic submission.
+
 ## Phase 0 - Product and architecture
 
 - Confirm learner, administrator, and operator workflows.

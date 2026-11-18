@@ -13,7 +13,57 @@ import (
 	"github.com/Anh2603/CyberLab-Hub/internal/auth"
 	tcpsync "github.com/Anh2603/CyberLab-Hub/internal/tcp"
 	udpnotify "github.com/Anh2603/CyberLab-Hub/internal/udp"
+	"github.com/gorilla/websocket"
 )
+
+func TestRoomClientSendsReceivesAndCancels(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/ws/rooms/log-analysis" || r.Header.Get("Authorization") != "Bearer test-token" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		upgrader := websocket.Upgrader{}
+		connection, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer connection.Close()
+		var input struct {
+			Body string `json:"body"`
+		}
+		if err := connection.ReadJSON(&input); err != nil {
+			return
+		}
+		_ = connection.WriteJSON(map[string]string{"username": "alice", "body": input.Body})
+		_, _, _ = connection.ReadMessage()
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, "127.0.0.1:1", "127.0.0.1:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client.token = "test-token"
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	events := make(chan string, 4)
+	send, err := client.JoinRoom(ctx, "log-analysis", events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := send("hello"); err != nil {
+		t.Fatal(err)
+	}
+	waitForEvent(t, events, "alice: hello")
+	cancel()
+	select {
+	case _, open := <-events:
+		if open {
+			t.Fatal("expected room events to close after cancellation")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("room reader did not exit after cancellation")
+	}
+}
 
 func TestHTTPClientWorkflow(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {

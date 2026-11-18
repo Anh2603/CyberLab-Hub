@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -119,7 +120,23 @@ func (ui *UI) openChallenges() {
 		}(search.GetText())
 	}
 	buttons := tview.NewForm().AddFormItem(search).AddButton("Load", load).AddButton("Back", ui.openMain)
-	ui.show("challenges", tview.NewFlex().SetDirection(tview.FlexRow).AddItem(buttons, 3, 0, true).AddItem(list, 0, 1, false).AddItem(ui.status, 3, 0, false))
+	layout := tview.NewFlex().SetDirection(tview.FlexRow).AddItem(buttons, 5, 0, true).AddItem(list, 0, 1, false).AddItem(ui.status, 3, 0, false)
+	layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyF2:
+			ui.application.SetFocus(list)
+			return nil
+		case tcell.KeyF3:
+			ui.application.SetFocus(buttons)
+			return nil
+		case tcell.KeyEscape:
+			ui.openMain()
+			return nil
+		}
+		return event
+	})
+	list.SetTitle(" Challenges | F2: results | F3: search | Esc: menu ")
+	ui.show("challenges", layout)
 	load()
 }
 
@@ -184,9 +201,13 @@ func (ui *UI) openDiscussion() {
 		roomCtx, cancel := context.WithCancel(ui.ctx)
 		ui.roomCancel = cancel
 		incoming := make(chan string, 32)
+		roomName := room.GetText()
 		go func() {
-			send, err := ui.client.JoinRoom(roomCtx, room.GetText(), incoming)
+			send, err := ui.client.JoinRoom(roomCtx, roomName, incoming)
 			ui.application.QueueUpdateDraw(func() {
+				if roomCtx.Err() != nil {
+					return
+				}
 				if err != nil {
 					ui.setStatus("[red]" + tview.Escape(err.Error()) + "[-]")
 					return
@@ -194,6 +215,10 @@ func (ui *UI) openDiscussion() {
 				ui.roomSend = send
 				ui.setStatus("[green]Discussion connected[-]")
 			})
+			if err != nil {
+				cancel()
+				return
+			}
 			for message := range incoming {
 				value := message
 				ui.application.QueueUpdateDraw(func() { fmt.Fprintln(messages, tview.Escape(value)) })
@@ -205,10 +230,16 @@ func (ui *UI) openDiscussion() {
 			ui.setStatus("[yellow]Connect to a room first[-]")
 			return
 		}
-		if err := ui.roomSend(body.GetText()); err != nil {
-			ui.setStatus("[red]" + tview.Escape(err.Error()) + "[-]")
-		}
+		send := ui.roomSend
+		message := body.GetText()
 		body.SetText("")
+		go func() {
+			if err := send(message); err != nil {
+				ui.application.QueueUpdateDraw(func() {
+					ui.setStatus("[red]" + tview.Escape(err.Error()) + "[-]")
+				})
+			}
+		}()
 	})
 	form.AddButton("Back", ui.openMain)
 	ui.show("discussion", tview.NewFlex().SetDirection(tview.FlexRow).AddItem(messages, 0, 1, false).AddItem(form, 8, 0, true).AddItem(ui.status, 3, 0, false))

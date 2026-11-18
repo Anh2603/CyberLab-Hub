@@ -234,6 +234,13 @@ func isConstraintError(err error) bool {
 	return errors.As(err, &coded) && coded.Code()&0xff == 19
 }
 
+// Upgrade only placeholder text shipped previously, preserving custom content,
+// answer hashes and publication state.
+func (s *Catalog) UpdateLegacyDescription(ctx context.Context, id, previous, replacement string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE challenges SET description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND description = ?", replacement, id, previous)
+	return err
+}
+
 func (s *Catalog) ChallengeCount(ctx context.Context) (int, error) {
 	var count int
 	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM challenges").Scan(&count); err != nil {

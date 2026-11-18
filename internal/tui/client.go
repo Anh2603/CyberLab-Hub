@@ -130,13 +130,24 @@ func (c *Client) PublishChallenge(ctx context.Context, challenge Challenge, answ
 	return c.request(ctx, http.MethodPost, "/api/admin/challenges", payload, &Challenge{}, true)
 }
 
+func (c *Client) ArchiveChallenge(ctx context.Context, id string) error {
+	return c.request(ctx, http.MethodDelete, "/api/admin/challenges/"+url.PathEscape(id), nil, &Challenge{}, true)
+}
+
 func (c *Client) RunProgressSync(ctx context.Context, events chan<- string, status chan<- string) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	connection, err := (&net.Dialer{Timeout: 3 * time.Second}).DialContext(ctx, "tcp", c.tcpAddr)
 	if err != nil {
 		nonBlocking(status, "TCP offline: "+err.Error())
 		return
 	}
 	defer connection.Close()
+	go func() {
+		<-ctx.Done()
+		_ = connection.Close()
+	}()
+	_ = connection.SetDeadline(time.Now().Add(5 * time.Second))
 	token, _ := c.credentials()
 	if err := writeJSONLine(connection, map[string]string{
 		"type": "authenticate", "token": token, "session_id": c.sessionID,
@@ -161,6 +172,7 @@ func (c *Client) RunProgressSync(ctx context.Context, events chan<- string, stat
 		nonBlocking(status, "TCP authentication failed: "+acknowledgement.Error)
 		return
 	}
+	_ = connection.SetDeadline(time.Time{})
 	nonBlocking(status, "TCP progress sync connected")
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
@@ -176,10 +188,6 @@ func (c *Client) RunProgressSync(ctx context.Context, events chan<- string, stat
 			}
 		}
 	}()
-	go func() {
-		<-ctx.Done()
-		_ = connection.Close()
-	}()
 	for reader.Scan() {
 		var message struct {
 			Type        string `json:"type"`
@@ -189,6 +197,9 @@ func (c *Client) RunProgressSync(ctx context.Context, events chan<- string, stat
 			nonBlocking(events, "Progress synchronized: "+message.ChallengeID)
 		}
 	}
+	if ctx.Err() == nil {
+		nonBlocking(status, "TCP progress sync disconnected; sign in again to reconnect")
+	}
 }
 
 func (c *Client) RunNotifications(ctx context.Context, events chan<- string, status chan<- string) {
@@ -197,7 +208,7 @@ func (c *Client) RunNotifications(ctx context.Context, events chan<- string, sta
 		nonBlocking(status, "UDP address invalid")
 		return
 	}
-	connection, err := net.ListenUDP("udp", &net.UDPAddr{})
+	connection, err := net.DialUDP("udp", nil, server)
 	if err != nil {
 		nonBlocking(status, "UDP unavailable: "+err.Error())
 		return
@@ -207,23 +218,48 @@ func (c *Client) RunNotifications(ctx context.Context, events chan<- string, sta
 	clientID := randomID("client-")
 	send := func(kind string) {
 		payload, _ := json.Marshal(map[string]string{"type": kind, "token": token, "client_id": clientID})
-		_, _ = connection.WriteToUDP(payload, server)
+		_, _ = connection.Write(payload)
 	}
 	send("subscribe")
-	defer send("unsubscribe")
-	nonBlocking(status, "UDP notifications subscribed")
+	defer func() {
+		send("unsubscribe")
+		_ = connection.SetReadDeadline(time.Now().Add(250 * time.Millisecond))
+		buffer := make([]byte, 8*1024)
+		for {
+			count, err := connection.Read(buffer)
+			if err != nil {
+				break
+			}
+			var response struct {
+				Type string `json:"type"`
+			}
+			if json.Unmarshal(buffer[:count], &response) == nil && response.Type == "unsubscribed" {
+				break
+			}
+		}
+		nonBlocking(status, "UDP notifications stopped")
+	}()
+	nonBlocking(status, "UDP subscription requested")
 	nextRefresh := time.Now().Add(time.Minute)
 	buffer := make([]byte, 8*1024)
 	for {
 		_ = connection.SetReadDeadline(time.Now().Add(time.Second))
-		count, _, err := connection.ReadFromUDP(buffer)
+		count, err := connection.Read(buffer)
 		if err == nil {
 			var message struct {
 				Type  string `json:"type"`
 				Title string `json:"title"`
+				Error string `json:"error"`
 			}
-			if json.Unmarshal(buffer[:count], &message) == nil && message.Type == "challenge_published" {
-				nonBlocking(events, "New challenge: "+message.Title)
+			if json.Unmarshal(buffer[:count], &message) == nil {
+				switch message.Type {
+				case "challenge_published":
+					nonBlocking(events, "New challenge: "+message.Title)
+				case "subscribed":
+					nonBlocking(status, "UDP notifications subscribed")
+				case "error":
+					nonBlocking(status, "UDP: "+message.Error)
+				}
 			}
 		} else if networkError, ok := err.(net.Error); !ok || !networkError.Timeout() {
 			return
@@ -241,12 +277,14 @@ func (c *Client) RunNotifications(ctx context.Context, events chan<- string, sta
 }
 
 func (c *Client) JoinRoom(ctx context.Context, room string, events chan<- string) (func(string) error, error) {
+	ctx, cancel := context.WithCancel(ctx)
 	websocketURL := strings.Replace(c.baseURL, "http://", "ws://", 1)
 	websocketURL = strings.Replace(websocketURL, "https://", "wss://", 1)
 	token, _ := c.credentials()
 	connection, response, err := (&websocket.Dialer{HandshakeTimeout: 5 * time.Second}).DialContext(ctx,
 		websocketURL+"/api/ws/rooms/"+url.PathEscape(room), http.Header{"Authorization": []string{"Bearer " + token}})
 	if err != nil {
+		cancel()
 		if response != nil && response.Body != nil {
 			response.Body.Close()
 		}
@@ -258,6 +296,7 @@ func (c *Client) JoinRoom(ctx context.Context, room string, events chan<- string
 		_ = connection.Close()
 	}()
 	go func() {
+		defer cancel()
 		defer close(events)
 		defer connection.Close()
 		for {

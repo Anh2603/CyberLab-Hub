@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -84,6 +85,47 @@ func TestSeedDefaultsOnlyWhenEmpty(t *testing.T) {
 	count, err := catalogStore.ChallengeCount(ctx)
 	if err != nil || count != 3 {
 		t.Fatalf("challenge count = %d, error = %v", count, err)
+	}
+}
+
+func TestSeedUpgradePreservesCustomContentAndArchive(t *testing.T) {
+	ctx := context.Background()
+	database, err := store.OpenCatalog(ctx, filepath.Join(t.TempDir(), "catalog.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.Close()
+	for _, challenge := range []store.Challenge{
+		{ID: "dns-log-basics", Title: "Existing DNS", Description: "Identify the queried domain in a synthetic DNS log.", Category: "network", Difficulty: "easy", AnswerHash: []byte("existing-answer-hash")},
+		{ID: "file-signature", Title: "Custom Forensics", Description: "Custom assignment: do not overwrite.", Category: "forensics", Difficulty: "hard", AnswerHash: []byte("custom-answer-hash")},
+	} {
+		if _, err := database.PublishChallenge(ctx, challenge); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := database.ArchiveChallenge(ctx, "dns-log-basics"); err != nil {
+		t.Fatal(err)
+	}
+	if err := SeedDefaults(ctx, database); err != nil {
+		t.Fatal(err)
+	}
+	upgraded, err := database.GetChallenge(ctx, "dns-log-basics", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if upgraded.Published || upgraded.Title != "Existing DNS" || string(upgraded.AnswerHash) != "existing-answer-hash" {
+		t.Fatalf("upgrade changed protected fields: %#v", upgraded)
+	}
+	if !strings.Contains(upgraded.Description, "query=dns-basics.example") {
+		t.Fatal("legacy exercise data was not upgraded")
+	}
+	custom, err := database.GetChallenge(ctx, "file-signature", true)
+	if err != nil || custom.Description != "Custom assignment: do not overwrite." {
+		t.Fatalf("custom description changed: %#v, %v", custom, err)
+	}
+	count, err := database.ChallengeCount(ctx)
+	if err != nil || count != 2 {
+		t.Fatalf("nonempty catalog was reseeded: %d, %v", count, err)
 	}
 }
 

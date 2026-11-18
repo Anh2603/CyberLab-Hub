@@ -172,6 +172,41 @@ func TestRealtimeClientsReceiveTCPAndUDPEvents(t *testing.T) {
 	}
 }
 
+func TestProgressSyncCancelsWhileAwaitingAuthentication(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	accepted := make(chan net.Conn, 1)
+	go func() {
+		connection, err := listener.Accept()
+		if err == nil {
+			accepted <- connection
+		}
+	}()
+	client, err := NewClient("http://127.0.0.1:1", listener.Addr().String(), "127.0.0.1:1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan struct{})
+	go func() { client.RunProgressSync(ctx, make(chan string, 1), make(chan string, 8)); close(done) }()
+	select {
+	case connection := <-accepted:
+		defer connection.Close()
+	case <-time.After(2 * time.Second):
+		t.Fatal("TCP connection did not start")
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("cancellation did not unblock the pending authentication read")
+	}
+}
+
 func waitForStatus(t *testing.T, statuses <-chan string, expected string) {
 	t.Helper()
 	deadline := time.After(2 * time.Second)

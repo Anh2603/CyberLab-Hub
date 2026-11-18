@@ -179,12 +179,24 @@ Start the catalog and backend first, then run `go run ./cmd/tui`. The TUI provid
 - challenge search, details, answer submission, and persisted progress;
 - live TCP progress events and UDP publication notifications;
 - authenticated WebSocket discussion rooms;
-- an administrator-only publication form;
+- an administrator-only form to publish and archive challenges;
 - visible connection and error status without blocking the UI event loop.
 
 Each TUI process generates unique TCP and UDP client identifiers, so multiple terminals can run simultaneously. JWTs remain in memory and are never written to disk or logs.
 
-In the challenge browser, use F2 to focus the results, F3 to return to search, and Esc to return to the menu. Within forms, use Tab/Shift+Tab and Enter. The terminal should be at least 100 columns by 30 rows.
+In the challenge browser, use F2 to focus the results, F3 to return to search, and Esc to return to the menu. On details, progress, discussion, and notifications screens, F2 focuses content and F3 focuses controls. Within forms, use Tab/Shift+Tab and Enter. The terminal should be at least 100 columns by 30 rows.
+
+The notifications screen has Subscribe and Unsubscribe controls. Keep My Progress open in a second terminal under the same account: a correct submission in the first terminal updates the second terminal automatically after the TCP event. Returning to the main menu closes the current discussion-room connection.
+
+Seed exercises include the synthetic log, headers, or bytes needed to solve them. Existing untouched placeholder descriptions are upgraded on catalog startup; customized descriptions, answer hashes, and archived state are preserved.
+
+To exercise the full terminal workflows against real HTTP, TCP, UDP, WebSocket and gRPC listeners, run:
+
+```powershell
+go test -count=1 -run TestTerminal -timeout 45s ./internal/tui
+```
+
+These tests render independent 100x30 simulated terminals, exercise form actions, check visible progress updates, exchange chat messages, subscribe/unsubscribe notifications, and publish/archive a challenge. They do not open desktop windows or alter your normal application databases.
 
 ## Security principles
 

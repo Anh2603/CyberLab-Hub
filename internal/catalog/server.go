@@ -109,18 +109,29 @@ func (s *Server) ArchiveChallenge(ctx context.Context, request *catalogv1.Archiv
 
 func SeedDefaults(ctx context.Context, catalogStore *store.Catalog) error {
 	count, err := catalogStore.ChallengeCount(ctx)
-	if err != nil || count != 0 {
+	if err != nil {
 		return err
 	}
 	seeds := []struct {
 		challenge store.Challenge
 		answer    string
 	}{
-		{store.Challenge{ID: "dns-log-basics", Title: "DNS Log Basics", Description: "Identify the queried domain in a synthetic DNS log.", Category: "log-analysis", Difficulty: "easy"}, "flag{dns_basics}"},
-		{store.Challenge{ID: "http-header-review", Title: "HTTP Header Review", Description: "Inspect response headers and identify the missing protection.", Category: "web-security", Difficulty: "easy"}, "flag{content_security_policy}"},
-		{store.Challenge{ID: "file-signature", Title: "File Signature", Description: "Recognize a file type from its hexadecimal magic bytes.", Category: "forensics", Difficulty: "medium"}, "flag{png}"},
+		{store.Challenge{ID: "dns-log-basics", Title: "DNS Log Basics", Description: "Synthetic DNS log:\n2026-11-18T08:00:00Z client=192.0.2.10 query=dns-basics.example type=A\n\nFind the label before .example. Replace dashes with underscores and submit flag{label}.", Category: "log-analysis", Difficulty: "easy"}, "flag{dns_basics}"},
+		{store.Challenge{ID: "http-header-review", Title: "HTTP Header Review", Description: "Synthetic HTTP response:\nHTTP/1.1 200 OK\nContent-Type: text/html\nX-Content-Type-Options: nosniff\n\nWhich missing response header restricts the sources a browser may load scripts from? Submit its lowercase name with underscores instead of dashes: flag{header_name}.", Category: "web-security", Difficulty: "easy"}, "flag{content_security_policy}"},
+		{store.Challenge{ID: "file-signature", Title: "File Signature", Description: "A synthetic file begins with these hexadecimal bytes:\n89 50 4E 47 0D 0A 1A 0A\n\nIdentify the file format and submit flag{lowercase_extension}.", Category: "forensics", Difficulty: "medium"}, "flag{png}"},
+	}
+	legacyDescriptions := map[string]string{
+		"dns-log-basics":     "Identify the queried domain in a synthetic DNS log.",
+		"http-header-review": "Inspect response headers and identify the missing protection.",
+		"file-signature":     "Recognize a file type from its hexadecimal magic bytes.",
 	}
 	for _, seed := range seeds {
+		if count != 0 {
+			if err := catalogStore.UpdateLegacyDescription(ctx, seed.challenge.ID, legacyDescriptions[seed.challenge.ID], seed.challenge.Description); err != nil {
+				return err
+			}
+			continue
+		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(seed.answer), bcrypt.DefaultCost)
 		if err != nil {
 			return err

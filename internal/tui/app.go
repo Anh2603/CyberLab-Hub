@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -16,12 +17,15 @@ type UI struct {
 	ctx         context.Context
 	cancel      context.CancelFunc
 
-	status        *tview.TextView
-	notifications *tview.TextView
-	events        chan string
-	statuses      chan string
-	roomCancel    context.CancelFunc
-	roomSend      func(string) error
+	status             *tview.TextView
+	notifications      *tview.TextView
+	events             chan string
+	statuses           chan string
+	roomCancel         context.CancelFunc
+	roomSend           func(string) error
+	progressList       *tview.List
+	notificationCancel context.CancelFunc
+	connecting         bool
 }
 
 func NewUI(client *Client) *UI {
@@ -50,6 +54,10 @@ func (ui *UI) authScreen() tview.Primitive {
 	form.AddInputField("Username", "", 32, nil, nil)
 	form.AddPasswordField("Password", "", 32, '*', nil)
 	action := func(register bool) {
+		if ui.connecting {
+			return
+		}
+		ui.connecting = true
 		username := form.GetFormItemByLabel("Username").(*tview.InputField).GetText()
 		password := form.GetFormItemByLabel("Password").(*tview.InputField).GetText()
 		ui.setStatus("[yellow]Connecting...[-]")
@@ -58,6 +66,7 @@ func (ui *UI) authScreen() tview.Primitive {
 			defer cancel()
 			user, err := ui.client.Authenticate(ctx, username, password, register)
 			ui.application.QueueUpdateDraw(func() {
+				ui.connecting = false
 				if err != nil {
 					ui.setStatus("[red]" + tview.Escape(err.Error()) + "[-]")
 					return
@@ -65,7 +74,7 @@ func (ui *UI) authScreen() tview.Primitive {
 				ui.setStatus(fmt.Sprintf("[green]Signed in as %s (%s)[-]", tview.Escape(user.Username), user.Role))
 				ui.openMain()
 				go ui.client.RunProgressSync(ui.ctx, ui.events, ui.statuses)
-				go ui.client.RunNotifications(ui.ctx, ui.events, ui.statuses)
+				ui.subscribeNotifications()
 			})
 		}()
 	}
@@ -80,16 +89,22 @@ func (ui *UI) authScreen() tview.Primitive {
 }
 
 func (ui *UI) openMain() {
+	if ui.roomCancel != nil {
+		ui.roomCancel()
+		ui.roomCancel = nil
+		ui.roomSend = nil
+	}
 	menu := tview.NewList().ShowSecondaryText(true)
-	menu.SetBorder(true).SetTitle(" CyberLab Hub ")
+	user := ui.client.User()
+	menu.SetBorder(true).SetTitle(fmt.Sprintf(" CyberLab Hub | %s (%s) ", tview.Escape(user.Username), user.Role))
 	menu.AddItem("Challenges", "Browse and solve hands-on exercises", 'c', ui.openChallenges)
 	menu.AddItem("My progress", "View persisted solved challenges", 'p', ui.openProgress)
 	menu.AddItem("Discussion", "Join a live topic room", 'd', ui.openDiscussion)
 	menu.AddItem("Notifications", "View UDP and TCP events", 'n', func() {
-		ui.show("notifications", ui.withBack(ui.notifications))
+		ui.openNotifications()
 	})
 	if ui.client.User().Role == "admin" {
-		menu.AddItem("Publish challenge", "Administrator catalog action", 'a', ui.openAdmin)
+		menu.AddItem("Manage challenges", "Publish or archive catalog challenges", 'a', ui.openAdmin)
 	}
 	menu.AddItem("Quit", "Stop all network sessions", 'q', ui.application.Stop)
 	ui.show("main", tview.NewFlex().SetDirection(tview.FlexRow).AddItem(menu, 0, 1, true).AddItem(ui.status, 3, 0, false))
@@ -163,13 +178,22 @@ func (ui *UI) openChallenge(challenge Challenge) {
 		}(answer.GetText())
 	})
 	form.AddButton("Back", ui.openChallenges)
-	ui.show("challenge", tview.NewFlex().SetDirection(tview.FlexRow).AddItem(details, 0, 1, false).AddItem(form, 5, 0, true).AddItem(ui.status, 3, 0, false))
+	ui.show("challenge", ui.contentScreen(details, form, 5))
 }
 
 func (ui *UI) openProgress() {
 	list := tview.NewList()
 	list.SetBorder(true).SetTitle(" My progress ")
-	ui.show("progress", tview.NewFlex().SetDirection(tview.FlexRow).AddItem(list, 0, 1, true).AddItem(tview.NewForm().AddButton("Back", ui.openMain), 3, 0, false).AddItem(ui.status, 3, 0, false))
+	ui.progressList = list
+	ui.show("progress", ui.contentScreen(list, tview.NewForm().AddButton("Back", ui.openMain), 3))
+	ui.refreshProgress()
+}
+
+func (ui *UI) refreshProgress() {
+	list := ui.progressList
+	if list == nil {
+		return
+	}
 	go func() {
 		ctx, cancel := context.WithTimeout(ui.ctx, 6*time.Second)
 		defer cancel()
@@ -179,6 +203,7 @@ func (ui *UI) openProgress() {
 				ui.setStatus("[red]" + tview.Escape(err.Error()) + "[-]")
 				return
 			}
+			list.Clear()
 			for _, item := range progress {
 				list.AddItem(item.ChallengeID, item.SolvedAt.Local().Format(time.RFC822), 0, nil)
 			}
@@ -242,7 +267,7 @@ func (ui *UI) openDiscussion() {
 		}()
 	})
 	form.AddButton("Back", ui.openMain)
-	ui.show("discussion", tview.NewFlex().SetDirection(tview.FlexRow).AddItem(messages, 0, 1, false).AddItem(form, 8, 0, true).AddItem(ui.status, 3, 0, false))
+	ui.show("discussion", ui.contentScreen(messages, form, 8))
 }
 
 func (ui *UI) openAdmin() {
@@ -268,16 +293,82 @@ func (ui *UI) openAdmin() {
 			})
 		}()
 	})
+	form.AddButton("Archive ID", func() {
+		id := form.GetFormItemByLabel("ID").(*tview.InputField).GetText()
+		go func() {
+			ctx, cancel := context.WithTimeout(ui.ctx, 6*time.Second)
+			defer cancel()
+			err := ui.client.ArchiveChallenge(ctx, id)
+			ui.application.QueueUpdateDraw(func() {
+				if err != nil {
+					ui.setStatus("[red]" + tview.Escape(err.Error()) + "[-]")
+					return
+				}
+				ui.setStatus("[green]Challenge archived[-]")
+			})
+		}()
+	})
 	form.AddButton("Back", ui.openMain)
 	ui.show("admin", tview.NewFlex().SetDirection(tview.FlexRow).AddItem(form, 0, 1, true).AddItem(ui.status, 3, 0, false))
 }
 
-func (ui *UI) withBack(content tview.Primitive) tview.Primitive {
-	return tview.NewFlex().SetDirection(tview.FlexRow).AddItem(content, 0, 1, false).
-		AddItem(tview.NewForm().AddButton("Back", ui.openMain), 3, 0, true).AddItem(ui.status, 3, 0, false)
+func (ui *UI) contentScreen(content, controls tview.Primitive, controlHeight int) tview.Primitive {
+	help := tview.NewTextView().SetText(" F2: content | F3: controls | Esc: menu | Tab/Shift+Tab: fields | Enter: select")
+	layout := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(content, 0, 1, false).AddItem(controls, controlHeight, 0, true).
+		AddItem(ui.status, 3, 0, false).AddItem(help, 1, 0, false)
+	layout.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyF2:
+			ui.application.SetFocus(content)
+			return nil
+		case tcell.KeyF3:
+			ui.application.SetFocus(controls)
+			return nil
+		case tcell.KeyEscape:
+			ui.openMain()
+			return nil
+		}
+		return event
+	})
+	return layout
+}
+
+func (ui *UI) subscribeNotifications() {
+	if ui.notificationCancel != nil {
+		return
+	}
+	ctx, cancel := context.WithCancel(ui.ctx)
+	ui.notificationCancel = cancel
+	go ui.client.RunNotifications(ctx, ui.events, ui.statuses)
+}
+
+func (ui *UI) openNotifications() {
+	controls := tview.NewForm()
+	controls.AddButton("Subscribe", func() {
+		ui.subscribeNotifications()
+	})
+	controls.AddButton("Unsubscribe", func() {
+		if ui.notificationCancel != nil {
+			ui.notificationCancel()
+			ui.notificationCancel = nil
+		}
+		ui.setStatus("[yellow]UDP unsubscribe requested[-]")
+	})
+	controls.AddButton("Back", ui.openMain)
+	ui.show("notifications", ui.contentScreen(ui.notifications, controls, 3))
 }
 
 func (ui *UI) show(name string, primitive tview.Primitive) {
+	if name == "admin" {
+		primitive.(*tview.Flex).SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyEscape {
+				ui.openMain()
+				return nil
+			}
+			return event
+		})
+	}
 	ui.pages.AddAndSwitchToPage(name, primitive, true)
 	ui.application.SetFocus(primitive)
 }
@@ -290,9 +381,18 @@ func (ui *UI) consumeEvents() {
 		case event := <-ui.events:
 			value := event
 			ui.application.QueueUpdateDraw(func() { fmt.Fprintln(ui.notifications, tview.Escape(value)) })
+			ui.application.QueueUpdateDraw(func() {
+				name, _ := ui.pages.GetFrontPage()
+				if name == "progress" && strings.HasPrefix(value, "Progress synchronized:") {
+					ui.refreshProgress()
+				}
+			})
 		case status := <-ui.statuses:
 			value := status
-			ui.application.QueueUpdateDraw(func() { ui.setStatus("[blue]" + tview.Escape(value) + "[-]") })
+			ui.application.QueueUpdateDraw(func() {
+				ui.setStatus("[blue]" + tview.Escape(value) + "[-]")
+				fmt.Fprintln(ui.notifications, tview.Escape(value))
+			})
 		case <-ui.ctx.Done():
 			return
 		}

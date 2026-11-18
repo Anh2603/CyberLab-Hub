@@ -1,0 +1,78 @@
+{{define "auth.html"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} · CyberLab Hub</title>
+  <link rel="stylesheet" href="/assets/app.css">
+  <script src="/assets/auth.js" defer></script>
+</head>
+<body class="auth-page">
+  <header class="auth-header">
+    <a class="brand" href="/login" aria-label="CyberLab Hub home">
+      <span class="brand-mark" aria-hidden="true">CH</span>
+      <span><strong>CyberLab Hub</strong><small>Learning workspace</small></span>
+    </a>
+    <span class="service-state"><span aria-hidden="true"></span>Service ready</span>
+  </header>
+
+  <main class="auth-main">
+    <section class="auth-card" aria-labelledby="auth-title">
+      {{if eq .Mode "signup"}}
+      <p class="eyebrow">Learner account</p>
+      <h1 id="auth-title">Create your account</h1>
+      <p class="lede">Create one learner account to solve challenges and track progress.</p>
+      {{else}}
+      <p class="eyebrow">Secure access</p>
+      <h1 id="auth-title">Log in to CyberLab Hub</h1>
+      <p class="lede">Continue to your cybersecurity learning workspace.</p>
+      {{end}}
+
+      <div id="form-alert" class="form-alert" role="alert" aria-live="polite" tabindex="-1" hidden></div>
+
+      <form id="auth-form" data-mode="{{.Mode}}" novalidate>
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9_.-]{3,32}" required aria-describedby="username-help">
+          {{if eq .Mode "signup"}}<small id="username-help">3–32 letters, numbers, dots, dashes, or underscores.</small>{{else}}<small id="username-help">Enter the username linked to your account.</small>{{end}}
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="password-field">
+            <input id="password" name="password" type="password" autocomplete="{{if eq .Mode "signup"}}new-password{{else}}current-password{{end}}" minlength="8" maxlength="72" required aria-describedby="password-help">
+            <button class="reveal-button" type="button" data-reveal="password" aria-label="Show password">Show</button>
+          </div>
+          {{if eq .Mode "signup"}}<small id="password-help">Use between 8 and 72 bytes.</small>{{else}}<small id="password-help">Passwords are case-sensitive.</small>{{end}}
+        </div>
+
+        {{if eq .Mode "signup"}}
+        <div class="field">
+          <label for="confirm-password">Confirm password</label>
+          <div class="password-field">
+            <input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
+            <button class="reveal-button" type="button" data-reveal="confirm-password" aria-label="Show confirmed password">Show</button>
+          </div>
+        </div>
+        {{end}}
+
+        <button id="submit-button" class="primary-button" type="submit">
+          <span class="button-label">{{if eq .Mode "signup"}}Create account{{else}}Log in{{end}}</span>
+          <span class="button-progress" aria-hidden="true"></span>
+        </button>
+      </form>
+
+      {{if eq .Mode "signup"}}
+      <p class="auth-switch">Already have an account? <a href="/login">Log in</a></p>
+      {{else}}
+      <p class="auth-switch">Don’t have an account? <a href="/signup">Sign up</a></p>
+      {{end}}
+      <noscript><p class="form-alert">JavaScript is required to connect this form to CyberLab Hub.</p></noscript>
+    </section>
+  </main>
+
+  <footer class="auth-footer">Synthetic evidence only · Local learning environment</footer>
+</body>
+</html>
+{{end}}

@@ -93,7 +93,9 @@ In terminal 3:
 go run ./cmd/tui
 ```
 
-The backend health endpoint is available at `http://localhost:8080/api/health`. Run the checks with:
+The backend health endpoint is available at `http://localhost:8080/api/health`. The same process serves the web authentication foundation at `http://localhost:8080/login`: learners can create an account or log in, and `/app` verifies the returned session against `/api/me`. The JWT is kept in browser session storage and is cleared when the tab session ends or the learner signs out.
+
+Run the checks with:
 
 ```powershell
 go test ./...

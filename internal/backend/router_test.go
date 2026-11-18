@@ -24,3 +24,17 @@ func TestHealth(t *testing.T) {
 		t.Fatalf("body = %#v, want backend ok response", body)
 	}
 }
+
+func TestWebLoginIsServedByBackend(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/login", nil)
+
+	NewRouter(Dependencies{}).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
+	}
+	if contentType := recorder.Header().Get("Content-Type"); contentType != "text/html; charset=utf-8" {
+		t.Fatalf("content type = %q, want HTML", contentType)
+	}
+}

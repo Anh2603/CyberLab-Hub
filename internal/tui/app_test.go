@@ -26,6 +26,36 @@ import (
 
 // This uses real network listeners and independent terminal event loops. It
 // verifies user-visible state, rather than only checking that a send succeeded.
+func TestSeparateLoginAndSignupScreens(t *testing.T) {
+	h := startTerminal(t, "http://127.0.0.1:1", "127.0.0.1:1", "127.0.0.1:1")
+	h.do(func() {
+		_, page := h.ui.pages.GetFrontPage()
+		form := page.(*tview.Flex).GetItem(1).(*tview.Flex).GetItem(1).(*tview.Form)
+		if form.GetFormItemCount() != 2 {
+			t.Error("login should only request username and password")
+		}
+		form.GetButton(1).InputHandler()(tcell.NewEventKey(tcell.KeyEnter, 0, 0), h.focus)
+	})
+	if text := h.snapshot(); !strings.Contains(text, "Create account") || !strings.Contains(text, "Confirm password") || !strings.Contains(text, "Back to login") {
+		t.Fatalf("signup screen is incomplete:\n%s", text)
+	}
+	h.do(func() {
+		_, page := h.ui.pages.GetFrontPage()
+		form := page.(*tview.Flex).GetItem(1).(*tview.Flex).GetItem(1).(*tview.Form)
+		form.GetFormItem(0).(*tview.InputField).SetText("new-user")
+		form.GetFormItem(1).(*tview.InputField).SetText("password-one")
+		form.GetFormItem(2).(*tview.InputField).SetText("password-two")
+		form.GetButton(0).InputHandler()(tcell.NewEventKey(tcell.KeyEnter, 0, 0), h.focus)
+		if h.ui.connecting || !strings.Contains(h.ui.status.GetText(true), "Passwords do not match") {
+			t.Error("mismatched passwords should be rejected before a network request")
+		}
+		form.GetButton(1).InputHandler()(tcell.NewEventKey(tcell.KeyEnter, 0, 0), h.focus)
+	})
+	if text := h.snapshot(); !strings.Contains(text, "Sign in") || strings.Contains(text, "Confirm password") {
+		t.Fatalf("back navigation did not restore login:\n%s", text)
+	}
+}
+
 func TestTerminalLearnerFlowAndLiveProgress(t *testing.T) {
 	url, tcpAddr, udpAddr := startTerminalBackend(t)
 	first := startTerminal(t, url, tcpAddr, udpAddr)
@@ -185,7 +215,7 @@ func startTerminal(t *testing.T, url, tcpAddr, udpAddr string) *terminalHarness 
 			t.Error("terminal did not stop")
 		}
 	})
-	if text := h.snapshot(); !strings.Contains(text, "Username") || !strings.Contains(text, "Register") {
+	if text := h.snapshot(); !strings.Contains(text, "Username") || !strings.Contains(text, "Login") || !strings.Contains(text, "Sign up") || strings.Contains(text, "Confirm password") {
 		t.Fatalf("login controls missing:\n%s", text)
 	}
 	return h
@@ -236,13 +266,15 @@ func (h *terminalHarness) authenticate(username string, register bool) {
 func (h *terminalHarness) signIn(username, password string, register bool) {
 	_, page := h.ui.pages.GetFrontPage()
 	form := page.(*tview.Flex).GetItem(1).(*tview.Flex).GetItem(1).(*tview.Form)
+	if register {
+		form.GetButton(1).InputHandler()(tcell.NewEventKey(tcell.KeyEnter, 0, 0), h.focus)
+		_, page = h.ui.pages.GetFrontPage()
+		form = page.(*tview.Flex).GetItem(1).(*tview.Flex).GetItem(1).(*tview.Form)
+		form.GetFormItem(2).(*tview.InputField).SetText(password)
+	}
 	form.GetFormItem(0).(*tview.InputField).SetText(username)
 	form.GetFormItem(1).(*tview.InputField).SetText(password)
-	button := 0
-	if register {
-		button = 1
-	}
-	form.GetButton(button).InputHandler()(tcell.NewEventKey(tcell.KeyEnter, 0, 0), h.focus)
+	form.GetButton(0).InputHandler()(tcell.NewEventKey(tcell.KeyEnter, 0, 0), h.focus)
 }
 
 func (h *terminalHarness) submit(answer string) {

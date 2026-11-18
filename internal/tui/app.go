@@ -49,17 +49,39 @@ func (ui *UI) Run() error {
 }
 
 func (ui *UI) authScreen() tview.Primitive {
+	return ui.accountScreen(false)
+}
+
+func (ui *UI) accountScreen(register bool) tview.Primitive {
 	form := tview.NewForm()
-	form.SetBorder(true).SetTitle(" CyberLab Hub - Sign in ")
+	title := " CyberLab Hub - Sign in "
+	hint := "Already have an account? Enter your details and choose Login.\nNew here? Choose Sign up to create an account."
+	height := 12
+	if register {
+		title = " CyberLab Hub - Create account "
+		hint = "Choose a username and a password of at least 8 characters.\nAlready registered? Choose Back to login."
+		height = 14
+	}
+	form.SetBorder(true).SetTitle(title)
 	form.AddInputField("Username", "", 32, nil, nil)
 	form.AddPasswordField("Password", "", 32, '*', nil)
-	action := func(register bool) {
+	if register {
+		form.AddPasswordField("Confirm password", "", 32, '*', nil)
+	}
+	action := func() {
 		if ui.connecting {
 			return
 		}
-		ui.connecting = true
 		username := form.GetFormItemByLabel("Username").(*tview.InputField).GetText()
 		password := form.GetFormItemByLabel("Password").(*tview.InputField).GetText()
+		if register {
+			confirmation := form.GetFormItemByLabel("Confirm password").(*tview.InputField).GetText()
+			if password != confirmation {
+				ui.setStatus("[red]Passwords do not match[-]")
+				return
+			}
+		}
+		ui.connecting = true
 		ui.setStatus("[yellow]Connecting...[-]")
 		go func() {
 			ctx, cancel := context.WithTimeout(ui.ctx, 6*time.Second)
@@ -73,17 +95,36 @@ func (ui *UI) authScreen() tview.Primitive {
 				}
 				ui.setStatus(fmt.Sprintf("[green]Signed in as %s (%s)[-]", tview.Escape(user.Username), user.Role))
 				ui.openMain()
+				ui.pages.RemovePage("auth").RemovePage("signup")
 				go ui.client.RunProgressSync(ui.ctx, ui.events, ui.statuses)
 				ui.subscribeNotifications()
 			})
 		}()
 	}
-	form.AddButton("Login", func() { action(false) })
-	form.AddButton("Register", func() { action(true) })
+	if register {
+		form.AddButton("Create account", action)
+		form.AddButton("Back to login", func() {
+			if ui.connecting {
+				return
+			}
+			ui.setStatus("")
+			ui.show("auth", ui.authScreen())
+		})
+	} else {
+		form.AddButton("Login", action)
+		form.AddButton("Sign up", func() {
+			if ui.connecting {
+				return
+			}
+			ui.setStatus("")
+			ui.show("signup", ui.accountScreen(true))
+		})
+	}
 	form.AddButton("Quit", ui.application.Stop)
 	return tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(nil, 0, 1, false).
-		AddItem(tview.NewFlex().AddItem(nil, 0, 1, false).AddItem(form, 60, 1, true).AddItem(nil, 0, 1, false), 12, 1, true).
+		AddItem(tview.NewFlex().AddItem(nil, 0, 1, false).AddItem(form, 68, 1, true).AddItem(nil, 0, 1, false), height, 1, true).
+		AddItem(tview.NewTextView().SetText(hint).SetTextAlign(tview.AlignCenter), 2, 0, false).
 		AddItem(ui.status, 3, 0, false).
 		AddItem(nil, 0, 1, false)
 }

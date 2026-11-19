@@ -10,6 +10,7 @@ import (
 
 	"github.com/Anh2603/CyberLab-Hub/internal/auth"
 	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	"github.com/Anh2603/CyberLab-Hub/internal/webapp"
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,6 +35,7 @@ type Dependencies struct {
 func NewRouter(deps Dependencies) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery(), limitRequestBody(64<<10))
+	webapp.Register(router)
 	router.GET("/api/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"service": "cyberlab-backend",

@@ -41,7 +41,12 @@
     challenges = catalog.challenges || [];
     progress = account.progress || [];
   }
-  const card = (challenge) => `<article class="web-card"><div class="card-tags"><span>${escapeHTML(label(challenge.category))}</span><span>${escapeHTML(label(challenge.difficulty))}</span></div><h3>${escapeHTML(challenge.title)}</h3><p>${escapeHTML(challenge.description.split('\n')[0])}</p><div class="card-foot"><span class="${solved(challenge.id) ? 'solved' : 'muted'}">${solved(challenge.id) ? 'Solved' : 'Not solved'}</span><a class="secondary-button" href="#challenge/${encodeURIComponent(challenge.id)}">View challenge</a></div></article>`;
+  const card = (challenge) => {
+    const sections = challenge.description.split(/\n\s*\n/);
+    const summary = (sections.length > 1 ? sections.slice(1).join(' ').trim() : '') || sections[0].split('\n')[0];
+    const evidence = sections[0].split('\n').slice(1, 3).join('\n');
+    return `<article class="web-card"><div class="card-tags"><span>${escapeHTML(label(challenge.category))}</span><span>${escapeHTML(label(challenge.difficulty))}</span></div><h3>${escapeHTML(challenge.title)}</h3><p class="card-summary">${escapeHTML(summary)}</p>${evidence ? `<pre class="card-preview">${escapeHTML(evidence)}</pre>` : ''}<div class="card-foot"><span class="${solved(challenge.id) ? 'solved' : 'muted'}">${solved(challenge.id) ? 'Solved' : 'Not solved'}</span><a class="secondary-button" href="#challenge/${encodeURIComponent(challenge.id)}">View challenge</a></div></article>`;
+  };
   const heading = (tag, title, description) => `<p class="eyebrow">${tag}</p><h1>${title}</h1><p class="lede">${description}</p>`;
 
   function overview() {

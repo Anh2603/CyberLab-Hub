@@ -21,7 +21,7 @@ func TestPagesAndAssets(t *testing.T) {
 	}{
 		{path: "/login", contentType: "text/html", contains: "Log in to CyberLab Hub"},
 		{path: "/signup", contentType: "text/html", contains: "Create your account"},
-		{path: "/app", contentType: "text/html", contains: "Connecting to CyberLab Hub"},
+		{path: "/app", contentType: "text/html", contains: "Loading workspace"},
 		{path: "/assets/app.css", contentType: "text/css", contains: "--primary: #4589ff"},
 		{path: "/assets/auth.js", contentType: "text/javascript", contains: "/api/auth/login"},
 	}

@@ -155,6 +155,15 @@ func (h accountHandler) authenticate(c *gin.Context) {
 	}
 	header := c.GetHeader("Authorization")
 	const prefix = "Bearer "
+	if header == "" && strings.EqualFold(c.GetHeader("Upgrade"), "websocket") {
+		for _, protocol := range strings.Split(c.GetHeader("Sec-WebSocket-Protocol"), ",") {
+			protocol = strings.TrimSpace(protocol)
+			if strings.HasPrefix(protocol, "token.") {
+				header = prefix + strings.TrimPrefix(protocol, "token.")
+				break
+			}
+		}
+	}
 	if !strings.HasPrefix(header, prefix) {
 		writeError(c, http.StatusUnauthorized, "bearer token required")
 		c.Abort()

@@ -7,11 +7,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/Anh2603/CyberLab-Hub/internal/auth"
 	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	realtime "github.com/Anh2603/CyberLab-Hub/internal/websocket"
+	"github.com/gorilla/websocket"
 )
 
 func TestRegistrationLoginAndAuthorization(t *testing.T) {
@@ -58,6 +61,48 @@ func TestRegistrationLoginAndAuthorization(t *testing.T) {
 	invalid := performJSON(router, http.MethodGet, "/api/me", "", "not-a-token")
 	if invalid.Code != http.StatusUnauthorized {
 		t.Fatalf("invalid-token status = %d, want %d", invalid.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestBrowserWebSocketAuthenticatesWithSubprotocol(t *testing.T) {
+	accounts, err := store.OpenBackend(context.Background(), filepath.Join(t.TempDir(), "backend.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer accounts.Close()
+	tokens := auth.NewManager("01234567890123456789012345678901", time.Hour)
+	router := NewRouter(Dependencies{Accounts: accounts, Tokens: tokens, Discussions: realtime.NewHub()})
+	register := performJSON(router, http.MethodPost, "/api/auth/register", `{"username":"browser","password":"strong-password"}`, "")
+	var session struct {
+		Token string `json:"token"`
+	}
+	if register.Code != http.StatusCreated || json.Unmarshal(register.Body.Bytes(), &session) != nil {
+		t.Fatalf("register: %d %s", register.Code, register.Body.String())
+	}
+	server := httptest.NewServer(router)
+	defer server.Close()
+	dialer := websocket.Dialer{Subprotocols: []string{"cyberlab", "token." + session.Token}}
+	connection, response, err := dialer.Dial(strings.Replace(server.URL, "http://", "ws://", 1)+"/api/ws/rooms/general", nil)
+	if err != nil {
+		t.Fatalf("browser websocket: %v, response: %v", err, response)
+	}
+	defer connection.Close()
+	if connection.Subprotocol() != "cyberlab" {
+		t.Fatalf("subprotocol = %q", connection.Subprotocol())
+	}
+	if err := connection.WriteJSON(map[string]string{"body": "hello"}); err != nil {
+		t.Fatal(err)
+	}
+	_ = connection.SetReadDeadline(time.Now().Add(2 * time.Second))
+	var message struct {
+		Username string `json:"username"`
+		Body     string `json:"body"`
+	}
+	if err := connection.ReadJSON(&message); err != nil {
+		t.Fatal(err)
+	}
+	if message.Username != "browser" || message.Body != "hello" {
+		t.Fatalf("message = %#v", message)
 	}
 }
 

@@ -14,10 +14,8 @@
       <span class="brand-mark" aria-hidden="true">CH</span>
       <span><strong>CyberLab Hub</strong><small id="workspace-label">Workspace</small></span>
     </a>
-    <p class="nav-label">Workspace</p>
-    <nav aria-label="Primary navigation">
-      <a class="nav-item active" href="/app" aria-current="page"><span aria-hidden="true">▦</span>Overview</a>
-    </nav>
+    <p class="nav-label" id="nav-label">Learning workspace</p>
+    <nav id="app-nav" aria-label="Primary navigation"></nav>
     <div class="sidebar-user">
       <span class="avatar" id="user-avatar" aria-hidden="true">–</span>
       <span><strong id="sidebar-username">Loading…</strong><small id="sidebar-role">Verifying session</small></span>
@@ -30,16 +28,9 @@
       <button id="logout-button" class="secondary-button" type="button">Sign out</button>
     </header>
 
-    <section class="foundation-card" aria-labelledby="workspace-title">
-      <p class="eyebrow">Web foundation</p>
-      <h1 id="workspace-title">Connecting to CyberLab Hub…</h1>
-      <p id="workspace-message" class="lede">The interface is verifying your authenticated backend session.</p>
-      <div class="foundation-grid" aria-label="Foundation status">
-        <article><span>Authentication</span><strong id="auth-status">Checking</strong></article>
-        <article><span>Account role</span><strong id="role-status">—</strong></article>
-        <article><span>Next module</span><strong>Dashboard</strong></article>
-      </div>
-      <div id="app-alert" class="form-alert" role="alert" aria-live="polite" hidden></div>
+    <section class="app-content" aria-live="polite">
+      <div id="app-alert" class="form-alert" role="alert" hidden></div>
+      <div id="app-view"><div class="loading-state">Loading workspace…</div></div>
     </section>
   </main>
 </body>

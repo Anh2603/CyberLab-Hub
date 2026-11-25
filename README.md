@@ -93,7 +93,9 @@ In terminal 3:
 go run ./cmd/tui
 ```
 
-The backend health endpoint is available at `http://localhost:8080/api/health`. The same process serves the web authentication foundation at `http://localhost:8080/login`: learners can create an account or log in, and `/app` verifies the returned session against `/api/me`. The JWT is kept in browser session storage and is cleared when the tab session ends or the learner signs out.
+The backend health endpoint is available at `http://localhost:8080/api/health`. The same process serves the web interface at `http://localhost:8080/login`: learners can create an account or log in, browse and solve challenges, review progress, join discussion rooms, and check newly published challenges. Administrators can publish and archive challenges. The browser verifies the returned session against `/api/me`. The JWT is kept in browser session storage and is cleared when the tab session ends or the user signs out.
+
+Browser notifications compare the published HTTP catalog during the current tab session; the TUI remains the direct UDP subscriber for the five-protocol demonstration. Browser discussion rooms use the WebSocket subprotocol header to provide the JWT, since browser WebSocket APIs cannot set an Authorization header.
 
 Run the checks with:
 

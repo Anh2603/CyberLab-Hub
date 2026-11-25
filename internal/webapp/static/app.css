@@ -170,6 +170,8 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 36px); line-height: 1.15; letter-spa
 .chat-panel { min-height: 520px; }
 .chat-messages { flex: 1; min-height: 330px; max-height: 55vh; overflow: auto; padding: 12px; border: 1px solid var(--border); background: var(--surface-lowest); }
 .chat-messages > div { padding: 10px; border-bottom: 1px solid var(--border); }
+.chat-message-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.chat-message-header time { color: var(--subtle); font-size: 12px; font-variant-numeric: tabular-nums; }
 .chat-messages p { margin: 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-form { display: flex; gap: 8px; }
 .chat-form input { flex: 1; min-width: 0; padding: 10px; background: var(--surface-lowest); color: var(--text); border: 1px solid var(--border); }

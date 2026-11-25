@@ -134,7 +134,33 @@
       const socket = new WebSocket(`${scheme}//${location.host}/api/ws/rooms/${room}`, ['cyberlab', `token.${token}`]);
       roomSocket = socket;
       socket.onopen = () => { if(roomSocket === socket) status.textContent = 'Connected'; };
-      socket.onmessage = (event) => { if(roomSocket !== socket) return; try { const data=JSON.parse(event.data); if(data.type !== 'message') return; const entry=document.createElement('div'); const who=document.createElement('strong'); who.textContent=data.username; const body=document.createElement('p'); body.textContent=data.body; entry.append(who,body); messages.append(entry); messages.scrollTop=messages.scrollHeight; } catch {} };
+      socket.onmessage = (event) => {
+        if (roomSocket !== socket) return;
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'error') { notify(data.error || 'Message could not be sent.'); return; }
+          if (data.type !== 'message') return;
+          const entry = document.createElement('div');
+          const header = document.createElement('div');
+          header.className = 'chat-message-header';
+          const who = document.createElement('strong');
+          who.textContent = data.username;
+          const time = document.createElement('time');
+          const sentAt = new Date(data.sent_at);
+          if (!Number.isNaN(sentAt.getTime())) {
+            time.dateTime = sentAt.toISOString();
+            time.textContent = sentAt.toLocaleString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
+            time.title = `Local time (${Intl.DateTimeFormat().resolvedOptions().timeZone})`;
+          } else time.textContent = 'Time unavailable';
+          const body = document.createElement('p');
+          body.textContent = data.body;
+          header.append(who, time);
+          entry.append(header, body);
+          if (!messages.querySelector('.chat-message-header')) messages.replaceChildren();
+          messages.append(entry);
+          messages.scrollTop = messages.scrollHeight;
+        } catch { notify('Could not display an incoming message.'); }
+      };
       socket.onclose = () => { if(roomSocket === socket) status.textContent = 'Disconnected'; };
       socket.onerror = () => { if(roomSocket === socket) status.textContent = 'Connection error'; };
     };

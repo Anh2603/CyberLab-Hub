@@ -25,7 +25,10 @@
   <main class="workspace-main">
     <header class="topbar">
       <div><span class="status-dot" aria-hidden="true"></span><span id="session-status">Checking session</span></div>
-      <button id="logout-button" class="secondary-button" type="button">Sign out</button>
+      <div class="topbar-actions">
+        <a id="notification-link" class="notification-link" href="#notifications" hidden>Notifications <span id="notification-count" hidden>0</span></a>
+        <button id="logout-button" class="secondary-button" type="button">Sign out</button>
+      </div>
     </header>
 
     <section class="app-content" aria-live="polite">

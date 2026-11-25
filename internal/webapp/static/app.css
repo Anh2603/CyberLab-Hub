@@ -62,6 +62,7 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 36px); line-height: 1.15; letter-spa
 @keyframes spin { to { transform: rotate(360deg); } }
 .secondary-button { border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); }
 .secondary-button:hover { border-color: var(--primary); }
+.secondary-button:disabled { cursor: default; opacity: .55; }
 .form-alert { margin: 0 0 20px; padding: 12px 14px; border-left: 3px solid var(--error); background: var(--error-surface); color: #ffd7da; }
 .auth-switch { margin: 24px 0 0; color: var(--muted); text-align: center; }
 .auth-switch a { font-weight: 700; }
@@ -79,6 +80,10 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 36px); line-height: 1.15; letter-spa
 .avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--surface-high); color: var(--primary-hover); font-weight: 700; }
 .workspace-main { min-height: 100vh; margin-left: 250px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; min-height: 76px; padding: 14px 32px; border-bottom: 1px solid var(--border); background: var(--surface-lowest); color: var(--muted); }
+.topbar-actions { display: flex; align-items: center; gap: 18px; }
+.notification-link { color: var(--muted); text-decoration: none; }
+.notification-link:hover { color: var(--text); }
+.notification-link span { display: inline-block; min-width: 20px; padding: 0 5px; border-radius: 10px; background: var(--primary); color: #07182f; font-size: 12px; font-weight: 700; text-align: center; }
 .foundation-card { max-width: 1050px; margin: 54px auto; padding: 42px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-low); }
 .foundation-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 32px; }
 .foundation-grid article { padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
@@ -166,7 +171,20 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 36px); line-height: 1.15; letter-spa
 .chat-messages p { margin: 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-form { display: flex; gap: 8px; }
 .chat-form input { flex: 1; min-width: 0; padding: 10px; background: var(--surface-lowest); color: var(--text); border: 1px solid var(--border); }
-.notification-item { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+.notification-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 22px 0 16px; }
+.notification-filters { display: flex; gap: 6px; }
+.notification-filters button { padding: 9px 14px; border: 1px solid var(--border); background: var(--surface-low); color: var(--muted); font: inherit; cursor: pointer; }
+.notification-filters button[aria-pressed="true"] { border-color: var(--primary); background: rgba(69, 137, 255, .16); color: var(--text); }
+.notification-list { gap: 0; }
+.notification-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--border); }
+.notification-item:first-child { padding-top: 0; }
+.notification-item:last-child { padding-bottom: 0; border-bottom: 0; }
+.notification-unread { border-left: 3px solid var(--primary); padding-left: 12px; }
+.notification-item small { color: var(--primary-hover); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.notification-item h3 { margin: 5px 0; }
+.notification-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.notification-actions .secondary-button { display: inline-flex; align-items: center; text-decoration: none; white-space: nowrap; }
+.notification-refresh { margin-top: 16px; }
 
 @media (max-width: 760px) {
   .app-content { padding: 22px 16px 50px; }
@@ -184,6 +202,9 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 36px); line-height: 1.15; letter-spa
   .sidebar-user { margin-top: 0; }
   .workspace-main { margin-left: 0; }
   .topbar { padding: 12px 18px; }
+  .topbar-actions { gap: 9px; }
+  .notification-toolbar, .notification-item { align-items: stretch; flex-direction: column; }
+  .notification-actions { justify-content: flex-start; }
   .foundation-card { margin: 24px 16px; padding: 26px 20px; }
   .foundation-grid { grid-template-columns: 1fr; }
 }

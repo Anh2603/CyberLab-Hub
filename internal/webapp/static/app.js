@@ -11,7 +11,24 @@
   let progress = [];
   let roomSocket = null;
   let currentRoom = 'general';
-  const knownKey = 'cyberlab.known-challenges';
+  let notificationFilter = 'all';
+  const readKey = () => `cyberlab.read-challenges.${user.id}`;
+  const readIDs = () => {
+    try {
+      const value = JSON.parse(sessionStorage.getItem(readKey()) || '[]');
+      return new Set(Array.isArray(value) ? value.filter((id) => typeof id === 'string') : []);
+    } catch { return new Set(); }
+  };
+  const saveReadIDs = (ids) => sessionStorage.setItem(readKey(), JSON.stringify([...ids]));
+  function updateNotificationIndicator() {
+    if (user?.role !== 'learner') return;
+    const read = readIDs();
+    const unread = challenges.filter((c) => !read.has(c.id)).length;
+    const badge = document.getElementById('notification-count');
+    badge.textContent = String(unread);
+    badge.hidden = unread === 0;
+    document.getElementById('notification-link').setAttribute('aria-label', `Notifications, ${unread} unread`);
+  }
   const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const label = (value) => ({'log-analysis':'Network Security','web-security':'Web Security','forensics':'File Analysis'}[value] || String(value || '').replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
   const solved = (id) => progress.some((item) => item.challenge_id === id);
@@ -40,6 +57,7 @@
     const [catalog, account] = await Promise.all([api('/api/challenges'), api('/api/progress')]);
     challenges = catalog.challenges || [];
     progress = account.progress || [];
+    if (user?.role === 'learner' && sessionStorage.getItem(readKey()) !== null) updateNotificationIndicator();
   }
   const card = (challenge) => {
     const sections = challenge.description.split(/\n\s*\n/);
@@ -124,15 +142,27 @@
     document.getElementById('chat-form').onsubmit=(event)=>{event.preventDefault();const input=document.getElementById('chat-input');if(roomSocket?.readyState===WebSocket.OPEN){roomSocket.send(JSON.stringify({body:input.value}));input.value='';}else notify('Discussion room is disconnected. Choose a room to reconnect.');};
     connect(currentRoom);
   }
+  function renderNotifications() {
+    const read = readIDs();
+    const unread = challenges.filter((c) => !read.has(c.id)).length;
+    const ordered = [...challenges].sort((a, b) => Number(read.has(a.id)) - Number(read.has(b.id)) || a.title.localeCompare(b.title));
+    const visible = notificationFilter === 'unread' ? ordered.filter((c) => !read.has(c.id)) : ordered;
+    const items = visible.map((c) => `<article class="notification-item ${read.has(c.id) ? '' : 'notification-unread'}"><div><small>${read.has(c.id) ? 'Challenge published' : 'Unread · Challenge published'}</small><h3>${escapeHTML(c.title)}</h3><p>${escapeHTML(label(c.category))} · ${escapeHTML(label(c.difficulty))}</p></div><div class="notification-actions">${read.has(c.id) ? '' : `<button type="button" class="secondary-button" data-read-id="${escapeHTML(c.id)}">Mark as read</button>`}<a class="secondary-button" data-read-id="${escapeHTML(c.id)}" href="#challenge/${encodeURIComponent(c.id)}">View challenge</a></div></article>`).join('');
+    view.innerHTML = `${heading('Learner workspace','Notifications','Challenge publications in the current catalog. Read state is kept in this browser session.')}<div class="notification-toolbar"><div class="notification-filters"><button type="button" data-filter="all" aria-pressed="${notificationFilter === 'all'}">All ${challenges.length}</button><button type="button" data-filter="unread" aria-pressed="${notificationFilter === 'unread'}">Unread ${unread}</button></div><button type="button" id="mark-all-read" class="secondary-button" ${unread ? '' : 'disabled'}>Mark all as read</button></div><div class="web-card notification-list">${items || `<p>${notificationFilter === 'unread' ? 'No unread notifications.' : 'No published challenges yet.'}</p>`}</div><button type="button" id="refresh-notifications" class="secondary-button notification-refresh">Check for new challenges</button>`;
+    view.querySelectorAll('[data-filter]').forEach((button) => button.onclick = () => { notificationFilter = button.dataset.filter; renderNotifications(); });
+    view.querySelectorAll('[data-read-id]').forEach((element) => element.addEventListener('click', () => {
+      read.add(element.dataset.readId);
+      saveReadIDs(read);
+      updateNotificationIndicator();
+      if (element.tagName === 'BUTTON') renderNotifications();
+    }));
+    document.getElementById('mark-all-read').onclick = () => { challenges.forEach((c) => read.add(c.id)); saveReadIDs(read); updateNotificationIndicator(); renderNotifications(); };
+    document.getElementById('refresh-notifications').onclick = () => notifications().catch((error) => notify(error.message));
+    updateNotificationIndicator();
+  }
   async function notifications() {
     await refresh();
-    let known = [];
-    try { known = JSON.parse(sessionStorage.getItem(knownKey) || '[]'); } catch {}
-    const previous = new Set(Array.isArray(known) ? known : []);
-    const newItems = challenges.filter((c)=>!previous.has(c.id));
-    sessionStorage.setItem(knownKey,JSON.stringify(challenges.map((c)=>c.id)));
-    view.innerHTML = `${heading('Learner workspace','Notifications','New challenges found in the published catalog during this browser session.')}<div class="web-card"><h2>Catalog updates</h2>${newItems.length ? newItems.map((c)=>`<div class="notification-item"><div><strong>${escapeHTML(c.title)}</strong><p>${escapeHTML(label(c.category))} · ${escapeHTML(label(c.difficulty))}</p></div><a href="#challenge/${encodeURIComponent(c.id)}">View challenge →</a></div>`).join('') : '<p>No new challenge publications in this browser session.</p>'}<button id="refresh-notifications" class="secondary-button">Check for new challenges</button></div>`;
-    document.getElementById('refresh-notifications').onclick=()=>notifications().catch((error)=>notify(error.message));
+    renderNotifications();
   }
   async function adminPage() {
     view.innerHTML = `${heading('Admin workspace','Challenge Management','Publish and archive cybersecurity challenges for learners.')}<button id="publish-toggle" class="primary-link">Publish challenge</button><div class="stats"><article><small>Published</small><strong>${challenges.length}</strong></article><article><small>Categories</small><strong>${new Set(challenges.map((c)=>c.category)).size}</strong></article></div><form id="publish-form" class="web-card admin-form" hidden><h2>Publish challenge</h2><label>ID<input name="id" required pattern="[a-z0-9-]+" placeholder="new-challenge"></label><label>Title<input name="title" required></label><label>Category<input name="category" required></label><label>Difficulty<select name="difficulty"><option>easy</option><option>medium</option><option>hard</option></select></label><label>Description and synthetic evidence<textarea name="description" rows="8" required></textarea></label><label>Expected answer<input name="answer" type="password" required></label><div class="form-actions"><button type="button" id="cancel-publish" class="secondary-button">Cancel</button><button class="primary-button">Publish challenge</button></div></form><h2>Published challenges</h2><div class="progress-list" id="admin-list">${challenges.map((c)=>`<div><span>${escapeHTML(c.title)}</span><span>${escapeHTML(label(c.category))}</span><span>${escapeHTML(label(c.difficulty))}</span><button class="archive-button secondary-button" data-id="${escapeHTML(c.id)}">Archive</button></div>`).join('') || '<p>No published challenges.</p>'}</div>`;
@@ -178,6 +208,7 @@
     document.getElementById('workspace-label').textContent = `${roleName} workspace`;
     document.getElementById('session-status').textContent = 'Backend connected';
     document.getElementById('nav-label').textContent = `${roleName} workspace`;
+    document.getElementById('notification-link').hidden = identity.role !== 'learner';
     nav.innerHTML = identity.role === 'admin' ? '<a class="nav-item" data-route="admin" href="#admin">Challenge Management</a>' : '<a class="nav-item" data-route="overview" href="#overview">Overview</a><a class="nav-item" data-route="challenges" href="#challenges">Challenges</a><a class="nav-item" data-route="progress" href="#progress">My Progress</a><a class="nav-item" data-route="discussions" href="#discussions">Discussions</a><a class="nav-item" data-route="notifications" href="#notifications">Notifications</a>';
   }
 
@@ -198,7 +229,10 @@
       user = await response.json(); token = session.token;
       showSession(user);
       await refresh();
-      if (!sessionStorage.getItem(knownKey)) sessionStorage.setItem(knownKey, JSON.stringify(challenges.map((c)=>c.id)));
+      if (user.role === 'learner') {
+        if (sessionStorage.getItem(readKey()) === null) saveReadIDs(new Set(challenges.map((c) => c.id)));
+        updateNotificationIndicator();
+      }
       await route();
     } catch (error) {
       alertBox.textContent = error instanceof Error ? error.message : 'Could not load the workspace. Reload this page.';

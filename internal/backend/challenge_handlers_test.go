@@ -57,6 +57,20 @@ func TestHTTPChallengeWorkflow(t *testing.T) {
 	if progress.Code != http.StatusOK || !bytes.Contains(progress.Body.Bytes(), []byte("dns-log-basics")) || bytes.Contains(progress.Body.Bytes(), []byte("file-signature")) {
 		t.Fatalf("progress status = %d, body = %s", progress.Code, progress.Body.String())
 	}
+	for id, answer := range map[string]string{
+		"http-header-review": "flag{content_security_policy}",
+		"file-signature":     "flag{png}",
+	} {
+		response := performJSON(harness.router, http.MethodPost, "/api/challenges/"+id+"/submissions",
+			`{"answer":"`+answer+`"}`, session.Token)
+		if response.Code != http.StatusOK || !bytes.Contains(response.Body.Bytes(), []byte(`"correct":true`)) {
+			t.Fatalf("%s submission status = %d, body = %s", id, response.Code, response.Body.String())
+		}
+	}
+	progress = performJSON(harness.router, http.MethodGet, "/api/progress", "", session.Token)
+	if progress.Code != http.StatusOK || !bytes.Contains(progress.Body.Bytes(), []byte("http-header-review")) || !bytes.Contains(progress.Body.Bytes(), []byte("file-signature")) {
+		t.Fatalf("all challenges progress status = %d, body = %s", progress.Code, progress.Body.String())
+	}
 }
 
 func TestAdminCanPublishAndLearnerCannot(t *testing.T) {
@@ -87,6 +101,18 @@ func TestAdminCanPublishAndLearnerCannot(t *testing.T) {
 	}
 	if len(harness.notifications.ids) != 1 || harness.notifications.ids[0] != "new-log-task" {
 		t.Fatalf("publication notifications = %#v", harness.notifications.ids)
+	}
+	archiveDenied := performJSON(harness.router, http.MethodDelete, "/api/admin/challenges/new-log-task", "", learnerToken)
+	if archiveDenied.Code != http.StatusForbidden {
+		t.Fatalf("learner archive status = %d, want %d", archiveDenied.Code, http.StatusForbidden)
+	}
+	archived := performJSON(harness.router, http.MethodDelete, "/api/admin/challenges/new-log-task", "", adminToken)
+	if archived.Code != http.StatusOK {
+		t.Fatalf("admin archive status = %d, body = %s", archived.Code, archived.Body.String())
+	}
+	search := performJSON(harness.router, http.MethodGet, "/api/challenges", "", learnerToken)
+	if search.Code != http.StatusOK || bytes.Contains(search.Body.Bytes(), []byte("new-log-task")) {
+		t.Fatalf("archived challenge remains in learner catalog: %d, %s", search.Code, search.Body.String())
 	}
 }
 

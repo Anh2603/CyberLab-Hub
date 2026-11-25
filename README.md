@@ -93,7 +93,18 @@ In terminal 3:
 go run ./cmd/tui
 ```
 
-The backend health endpoint is available at `http://localhost:8080/api/health`. The same process serves the web authentication foundation at `http://localhost:8080/login`: learners can create an account or log in, and `/app` verifies the returned session against `/api/me`. The JWT is kept in browser session storage and is cleared when the tab session ends or the learner signs out.
+The backend health endpoint is available at `http://localhost:8080/api/health`. The same process serves the web interface at `http://localhost:8080/login`: learners can create an account or log in, browse and solve challenges, review progress, join discussion rooms, and check newly published challenges. Administrators can publish and archive challenges. The browser verifies the returned session against `/api/me`. The JWT is kept in browser session storage and is cleared when the tab session ends or the user signs out.
+
+Browser notifications list the current published catalog and mark newly appearing challenge IDs as unread when the catalog is checked again. Read state is kept per account in browser session storage, so it is not shared across devices or saved by the backend. The TUI remains the direct UDP subscriber for the five-protocol demonstration. Browser discussion rooms use the WebSocket subprotocol header to provide the JWT, since browser WebSocket APIs cannot set an Authorization header.
+
+### Web demo walkthrough
+
+1. Start the catalog and backend in separate terminals, then open `http://localhost:8080/login`. Sign up as a learner if you do not already have an account. Open **Challenges**, solve an exercise, and check **My Progress**.
+2. To create an administrator, stop the backend and set `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` in its terminal before starting it again. Use a username that no learner already uses. The administrator signs in through the same login page; public sign-up creates learner accounts only.
+3. Keep the learner session open in one browser window and sign in as the administrator in a separate browser profile or private window. Publish a challenge from **Challenge Management**. In the learner window, open **Notifications** and select **Check for new challenges**. The new challenge should appear as unread. Archive it as the administrator to remove it from the active learner catalog.
+4. Open two learner sessions in separate browser profiles or private windows. Join the same **Discussions** room and send a message to confirm it appears in the other session. Messages are live while both clients are connected; the app does not store chat history.
+
+Restart the backend after changing its environment variables or web source code. Restart the catalog after changing its source code or seed data. Existing learner progress is stored in the backend database; challenge content is stored in the catalog database.
 
 Run the checks with:
 

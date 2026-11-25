@@ -31,7 +31,7 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		upgrader: websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024},
+		upgrader: websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024, Subprotocols: []string{"cyberlab"}},
 		rooms:    make(map[string]map[*client]struct{}),
 	}
 }

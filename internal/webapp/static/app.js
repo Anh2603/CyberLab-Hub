@@ -65,7 +65,7 @@
     const evidence = sections[0].split('\n').slice(1, 3).join('\n');
     return `<article class="web-card"><div class="card-tags"><span>${escapeHTML(label(challenge.category))}</span><span>${escapeHTML(label(challenge.difficulty))}</span></div><h3>${escapeHTML(challenge.title)}</h3><p class="card-summary">${escapeHTML(summary)}</p>${evidence ? `<pre class="card-preview">${escapeHTML(evidence)}</pre>` : ''}<div class="card-foot"><span class="${solved(challenge.id) ? 'solved' : 'muted'}">${solved(challenge.id) ? 'Solved' : 'Not solved'}</span><a class="secondary-button" href="#challenge/${encodeURIComponent(challenge.id)}">View challenge</a></div></article>`;
   };
-  const heading = (tag, title, description) => `<p class="eyebrow">${tag}</p><h1>${title}</h1><p class="lede">${description}</p>`;
+  const heading = (tag, title, description) => `<div class="page-heading"><p class="eyebrow">${tag}</p><h1>${title}</h1><p class="lede">${description}</p></div>`;
 
   function overview() {
     const completions = publishedProgress().sort((a,b) => new Date(b.solved_at) - new Date(a.solved_at));

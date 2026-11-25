@@ -99,6 +99,8 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 36px); line-height: 1.15; letter-spa
 .app-content .lede { margin-bottom: 22px; }
 .global-alert { margin-bottom: 20px; }
 .web-hero { display: flex; justify-content: space-between; align-items: center; gap: 28px; padding: 32px; border: 1px solid var(--border); border-left: 3px solid var(--primary); background: var(--surface-low); }
+.web-hero .page-heading { flex: 1; max-width: 720px; }
+.web-hero .lede { margin-bottom: 0; }
 .primary-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 18px; border: 0; border-radius: var(--radius-sm); background: var(--primary); color: #07182f; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; white-space: nowrap; }
 .primary-link:hover { background: var(--primary-hover); }
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin: 22px 0 38px; }

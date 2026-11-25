@@ -113,12 +113,13 @@ func SeedDefaults(ctx context.Context, catalogStore *store.Catalog) error {
 		return err
 	}
 	seeds := []struct {
-		challenge store.Challenge
-		answer    string
+		challenge          store.Challenge
+		answer             string
+		previousDifficulty string
 	}{
-		{store.Challenge{ID: "dns-log-basics", Title: "DNS Log Basics", Description: "Synthetic DNS log:\n2026-11-18T08:00:00Z client=192.0.2.10 query=dns-basics.example type=A\n\nFind the label before .example. Replace dashes with underscores and submit flag{label}.", Category: "log-analysis", Difficulty: "easy"}, "flag{dns_basics}"},
-		{store.Challenge{ID: "http-header-review", Title: "HTTP Header Review", Description: "Synthetic HTTP response:\nHTTP/1.1 200 OK\nContent-Type: text/html\nX-Content-Type-Options: nosniff\n\nWhich missing response header restricts the sources a browser may load scripts from? Submit its lowercase name with underscores instead of dashes: flag{header_name}.", Category: "web-security", Difficulty: "easy"}, "flag{content_security_policy}"},
-		{store.Challenge{ID: "file-signature", Title: "File Signature", Description: "A synthetic file begins with these hexadecimal bytes:\n89 50 4E 47 0D 0A 1A 0A\n\nIdentify the file format and submit flag{lowercase_extension}.", Category: "forensics", Difficulty: "medium"}, "flag{png}"},
+		{store.Challenge{ID: "dns-log-basics", Title: "DNS Log Basics", Description: "Synthetic DNS log:\n2026-11-18T08:00:00Z client=192.0.2.10 query=dns-basics.example type=A\n\nFind the label before .example. Replace dashes with underscores and submit flag{label}.", Category: "log-analysis", Difficulty: "easy"}, "flag{dns_basics}", ""},
+		{store.Challenge{ID: "http-header-review", Title: "HTTP Header Review", Description: "Synthetic HTTP response:\nHTTP/1.1 200 OK\nContent-Type: text/html\nX-Content-Type-Options: nosniff\n\nWhich missing response header restricts the sources a browser may load scripts from? Submit its lowercase name with underscores instead of dashes: flag{header_name}.", Category: "web-security", Difficulty: "medium"}, "flag{content_security_policy}", "easy"},
+		{store.Challenge{ID: "file-signature", Title: "File Signature", Description: "A synthetic file begins with these hexadecimal bytes:\n89 50 4E 47 0D 0A 1A 0A\n\nIdentify the file format and submit flag{lowercase_extension}.", Category: "forensics", Difficulty: "easy"}, "flag{png}", "medium"},
 	}
 	legacyDescriptions := map[string]string{
 		"dns-log-basics":     "Identify the queried domain in a synthetic DNS log.",
@@ -129,6 +130,11 @@ func SeedDefaults(ctx context.Context, catalogStore *store.Catalog) error {
 		if count != 0 {
 			if err := catalogStore.UpdateLegacyDescription(ctx, seed.challenge.ID, legacyDescriptions[seed.challenge.ID], seed.challenge.Description); err != nil {
 				return err
+			}
+			if seed.previousDifficulty != "" {
+				if err := catalogStore.UpdateSeedDifficulty(ctx, seed.challenge.ID, seed.challenge.Title, seed.challenge.Description, seed.challenge.Category, seed.previousDifficulty, seed.challenge.Difficulty); err != nil {
+					return err
+				}
 			}
 			continue
 		}

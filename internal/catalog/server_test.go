@@ -86,6 +86,54 @@ func TestSeedDefaultsOnlyWhenEmpty(t *testing.T) {
 	if err != nil || count != 3 {
 		t.Fatalf("challenge count = %d, error = %v", count, err)
 	}
+	for id, want := range map[string]string{"dns-log-basics": "easy", "http-header-review": "medium", "file-signature": "easy"} {
+		challenge, err := catalogStore.GetChallenge(ctx, id, true)
+		if err != nil || challenge.Difficulty != want {
+			t.Fatalf("%s difficulty = %q, error = %v; want %q", id, challenge.Difficulty, err, want)
+		}
+	}
+}
+
+func TestSeedDefaultsCorrectsOnlyBundledDifficulty(t *testing.T) {
+	ctx := context.Background()
+	database, err := store.OpenCatalog(ctx, filepath.Join(t.TempDir(), "catalog.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.Close()
+	if err := SeedDefaults(ctx, database); err != nil {
+		t.Fatal(err)
+	}
+	httpChallenge, err := database.GetChallenge(ctx, "http-header-review", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fileChallenge, err := database.GetChallenge(ctx, "file-signature", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := database.UpdateSeedDifficulty(ctx, httpChallenge.ID, httpChallenge.Title, httpChallenge.Description, httpChallenge.Category, "medium", "easy"); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.UpdateSeedDifficulty(ctx, fileChallenge.ID, fileChallenge.Title, fileChallenge.Description, fileChallenge.Category, "easy", "medium"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := database.ArchiveChallenge(ctx, httpChallenge.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := SeedDefaults(ctx, database); err != nil {
+		t.Fatal(err)
+	}
+	for id, want := range map[string]string{"http-header-review": "medium", "file-signature": "easy"} {
+		challenge, err := database.GetChallenge(ctx, id, true)
+		if err != nil || challenge.Difficulty != want {
+			t.Fatalf("%s difficulty = %q, error = %v; want %q", id, challenge.Difficulty, err, want)
+		}
+	}
+	archived, err := database.GetChallenge(ctx, httpChallenge.ID, true)
+	if err != nil || archived.Published || string(archived.AnswerHash) != string(httpChallenge.AnswerHash) {
+		t.Fatalf("migration changed archive or answer hash: %#v, %v", archived, err)
+	}
 }
 
 func TestSeedUpgradePreservesCustomContentAndArchive(t *testing.T) {

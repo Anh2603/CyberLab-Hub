@@ -241,6 +241,15 @@ func (s *Catalog) UpdateLegacyDescription(ctx context.Context, id, previous, rep
 	return err
 }
 
+// Correct the difficulty only when the bundled exercise still matches its
+// original title, description, category, and difficulty.
+func (s *Catalog) UpdateSeedDifficulty(ctx context.Context, id, title, description, category, previous, replacement string) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE challenges SET difficulty = ?, updated_at = CURRENT_TIMESTAMP
+WHERE id = ? AND title = ? AND description = ? AND category = ? AND difficulty = ?`,
+		replacement, id, title, description, category, previous)
+	return err
+}
+
 func (s *Catalog) ChallengeCount(ctx context.Context) (int, error) {
 	var count int
 	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM challenges").Scan(&count); err != nil {

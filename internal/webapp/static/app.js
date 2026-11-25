@@ -16,6 +16,17 @@
   const label = (value) => ({'log-analysis':'Network Security','web-security':'Web Security','forensics':'File Analysis'}[value] || String(value || '').replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
   const solved = (id) => progress.some((item) => item.challenge_id === id);
   const dateOf = (id) => progress.find((item) => item.challenge_id === id)?.solved_at;
+  const publishedProgress = () => progress.filter((item) => challenges.some((c) => c.id === item.challenge_id));
+  const completedAt = (value) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Completed' : date.toLocaleString();
+  };
+  const categoryProgress = () => [...new Set(challenges.map((c) => c.category))]
+    .sort((a, b) => label(a).localeCompare(label(b)))
+    .map((category) => {
+      const items = challenges.filter((c) => c.category === category);
+      return {category, total: items.length, completed: items.filter((c) => solved(c.id)).length};
+    });
 
   function notify(message) { alertBox.textContent = message; alertBox.hidden = !message; }
   async function api(path, options = {}) {
@@ -34,10 +45,15 @@
   const heading = (tag, title, description) => `<p class="eyebrow">${tag}</p><h1>${title}</h1><p class="lede">${description}</p>`;
 
   function overview() {
-    const count = progress.length;
-    const recent = [...progress].sort((a,b) => new Date(b.solved_at) - new Date(a.solved_at))[0];
+    const completions = publishedProgress().sort((a,b) => new Date(b.solved_at) - new Date(a.solved_at));
+    const count = completions.length;
+    const recent = completions[0];
     const recentChallenge = challenges.find((c) => c.id === recent?.challenge_id);
-    view.innerHTML = `<div class="web-hero">${heading('Learner workspace','CyberLab Hub Learning Workspace','Inspect synthetic evidence, solve cybersecurity challenges, and track your learning progress.')}<a class="primary-link" href="#challenges">Explore challenges</a></div><div class="stats"><article><small>Challenges solved</small><strong>${count} of ${challenges.length}</strong><span>${challenges.length ? Math.round(count / challenges.length * 100) : 0}% complete</span></article><article><small>Available challenges</small><strong>${challenges.length}</strong><span>Published catalog</span></article><article><small>Categories</small><strong>${new Set(challenges.map((c) => c.category)).size}</strong><span>Challenge topics</span></article><article><small>Recent completion</small><strong>${escapeHTML(recentChallenge?.title || 'None yet')}</strong><span>${escapeHTML(recentChallenge ? label(recentChallenge.category) : 'Explore challenges')}</span></article></div><div class="section-title"><h2>Featured challenges</h2><a href="#challenges">View all →</a></div><div class="web-grid">${challenges.slice(0,3).map(card).join('') || '<p>No published challenges yet.</p>'}</div>`;
+    const activity = completions.slice(0, 5).map((item) => {
+      const challenge = challenges.find((c) => c.id === item.challenge_id);
+      return `<li><span class="activity-dot" aria-hidden="true"></span><div><strong>${escapeHTML(challenge.title)}</strong><small>Solved · ${escapeHTML(completedAt(item.solved_at))}</small></div><a href="#challenge/${encodeURIComponent(challenge.id)}">View challenge</a></li>`;
+    }).join('');
+    view.innerHTML = `<div class="web-hero">${heading('Learner workspace','CyberLab Hub Learning Workspace','Inspect synthetic evidence, solve cybersecurity challenges, and track your learning progress.')}<a class="primary-link" href="#challenges">Explore challenges</a></div><div class="stats"><article><small>Challenges solved</small><strong>${count} of ${challenges.length}</strong><span>${challenges.length ? Math.round(count / challenges.length * 100) : 0}% complete</span></article><article><small>Available challenges</small><strong>${challenges.length}</strong><span>Published catalog</span></article><article><small>Categories</small><strong>${new Set(challenges.map((c) => c.category)).size}</strong><span>Challenge topics</span></article><article><small>Recent completion</small><strong>${escapeHTML(recentChallenge?.title || 'None yet')}</strong><span>${escapeHTML(recentChallenge ? label(recentChallenge.category) : 'Explore challenges')}</span></article></div><div class="section-title"><h2>Featured challenges</h2><a href="#challenges">View all →</a></div><div class="web-grid">${challenges.slice(0,3).map(card).join('') || '<p>No published challenges yet.</p>'}</div><div class="overview-lower"><section class="web-card"><div class="section-title"><h2>Recent activity</h2><a href="#progress">My Progress →</a></div><p class="muted">Completed challenges in the current catalog</p>${activity ? `<ul class="activity-list">${activity}</ul>` : '<p>No completed challenges yet. Explore a challenge to get started.</p>'}</section><section class="web-card"><h2>Discussion rooms</h2><p>Ask questions and discuss challenge concepts with other learners.</p><div class="room-links"><a href="#discussions/general">General</a><a href="#discussions/network-security">Network Security</a><a href="#discussions/web-security">Web Security</a><a href="#discussions/file-analysis">File Analysis</a></div></section></div>`;
   }
   function browser() {
     view.innerHTML = `${heading('Challenge catalog','Challenges','Browse published challenges and inspect synthetic evidence.')}<div class="filters"><input id="search" type="search" placeholder="Search challenges" aria-label="Search challenges"><select id="category" aria-label="Category"><option value="">All categories</option>${[...new Set(challenges.map((c)=>c.category))].map((c)=>`<option value="${escapeHTML(c)}">${escapeHTML(label(c))}</option>`).join('')}</select><select id="difficulty" aria-label="Difficulty"><option value="">All difficulties</option><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select><select id="status" aria-label="Solved status"><option value="">All statuses</option><option value="solved">Solved</option><option value="unsolved">Not solved</option></select></div><p id="result-count" class="muted"></p><div id="results" class="web-grid"></div>`;
@@ -76,10 +92,13 @@
     });
   }
   function myProgress() {
-    view.innerHTML = `${heading('Learner workspace','My Progress','Review your solved challenges and current learning progress.')}<div class="stats"><article><small>Challenges solved</small><strong>${progress.length} of ${challenges.length}</strong></article><article><small>Available challenges</small><strong>${challenges.length}</strong></article><article><small>Categories</small><strong>${new Set(challenges.map((c)=>c.category)).size}</strong></article></div><h2>Challenge progress</h2><div class="progress-list">${challenges.map((c)=>`<div><span>${escapeHTML(c.title)}</span><span>${escapeHTML(label(c.category))}</span><span class="${solved(c.id)?'solved':'muted'}">${solved(c.id)?'Solved':'Not solved'}</span><a href="#challenge/${encodeURIComponent(c.id)}">View challenge</a></div>`).join('') || '<p>No published challenges.</p>'}</div>`;
+    const count = publishedProgress().length;
+    const categories = categoryProgress().map(({category, total, completed}) => `<article class="web-card category-card"><div class="category-heading"><h3>${escapeHTML(label(category))}</h3><strong>${completed} / ${total}</strong></div><progress value="${completed}" max="${total}" aria-label="${escapeHTML(label(category))} completed"></progress><small>${Math.round(completed / total * 100)}% complete</small></article>`).join('');
+    view.innerHTML = `${heading('Learner workspace','My Progress','Review your solved challenges and current learning progress.')}<div class="stats progress-stats"><article><small>Challenges solved</small><strong>${count} of ${challenges.length}</strong><span>${challenges.length ? Math.round(count / challenges.length * 100) : 0}% complete</span></article><article><small>Available challenges</small><strong>${challenges.length}</strong><span>Published catalog</span></article><article><small>Categories</small><strong>${new Set(challenges.map((c)=>c.category)).size}</strong><span>Challenge topics</span></article></div><h2>Progress by category</h2><div class="category-grid">${categories || '<p>No published challenges yet.</p>'}</div><div class="section-title"><h2>Challenge progress</h2><span class="muted">${challenges.length} published challenge${challenges.length === 1 ? '' : 's'}</span></div><div class="progress-list">${challenges.map((c)=>`<div><span>${escapeHTML(c.title)}</span><span>${escapeHTML(label(c.category))}</span><span class="${solved(c.id)?'solved':'muted'}">${solved(c.id)?`Solved · ${escapeHTML(completedAt(dateOf(c.id)))}`:'Not solved'}</span><a href="#challenge/${encodeURIComponent(c.id)}">View challenge</a></div>`).join('') || '<p>No published challenges.</p>'}</div>`;
   }
-  function discussions() {
+  function discussions(selectedRoom) {
     const rooms = ['general','network-security','web-security','file-analysis'];
+    if (rooms.includes(selectedRoom)) currentRoom = selectedRoom;
     view.innerHTML = `${heading('Learner workspace','Discussions','Discuss challenge concepts with other learners.')}<div class="discussion-layout"><div class="web-card room-list"><h2>Discussion rooms</h2>${rooms.map((room)=>`<button class="room-button secondary-button" data-room="${room}">${escapeHTML(label(room))}</button>`).join('')}</div><div class="web-card chat-panel"><div class="section-title"><h2 id="room-title">${escapeHTML(label(currentRoom))}</h2><span id="chat-status" class="muted">Connecting…</span></div><div id="chat-messages" class="chat-messages" aria-live="polite"><p>Messages appear while you are connected to this room.</p></div><form id="chat-form" class="chat-form"><input id="chat-input" required maxlength="2048" autocomplete="off" placeholder="Write a message" aria-label="Message"><button class="primary-link">Send</button></form></div></div>`;
     const connect = (room) => {
       if (roomSocket) roomSocket.close();
@@ -126,7 +145,7 @@
     else if (name === 'challenge' && id) await challengePage(id);
     else if (name === 'challenges') browser();
     else if (name === 'progress') myProgress();
-    else if (name === 'discussions') discussions();
+    else if (name === 'discussions') discussions(id);
     else if (name === 'notifications') await notifications();
     else overview();
     nav.querySelectorAll('a').forEach((a) => { const active = a.dataset.route === (name === 'challenge' ? 'challenges' : name); a.classList.toggle('active',active); if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current'); });

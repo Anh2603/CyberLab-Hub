@@ -351,7 +351,7 @@ func (u *MangaUI) discussion() {
 func (u *MangaUI) release() {
 	form := tview.NewForm()
 	form.SetBorder(true).SetTitle(" Release new chapter (admin) ")
-	form.AddInputField("Manga ID", "star-harbor", 64, nil, nil).AddInputField("New total chapters", "13", 10, tview.InputFieldInteger, nil)
+	form.AddInputField("Manga ID", "one-piece", 64, nil, nil).AddInputField("New total chapters", "1200", 10, tview.InputFieldInteger, nil)
 	form.AddButton("Release", func() {
 		id := form.GetFormItemByLabel("Manga ID").(*tview.InputField).GetText()
 		total, err := strconv.Atoi(form.GetFormItemByLabel("New total chapters").(*tview.InputField).GetText())

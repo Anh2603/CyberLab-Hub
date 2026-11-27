@@ -47,7 +47,8 @@ func (s *Catalog) MigrateManga(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS manga (
  id TEXT PRIMARY KEY,title TEXT NOT NULL,author TEXT NOT NULL,genres TEXT NOT NULL,
  status TEXT NOT NULL CHECK(status IN ('ongoing','completed','hiatus')),
- total_chapters INTEGER NOT NULL CHECK(total_chapters>=0),description TEXT NOT NULL);`)
+ total_chapters INTEGER NOT NULL CHECK(total_chapters>=0),description TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS catalog_hidden (manga_id TEXT PRIMARY KEY REFERENCES manga(id));`)
 	return err
 }
 func (s *Catalog) SeedManga(ctx context.Context, seeds []Manga) error {
@@ -71,6 +72,29 @@ func (s *Catalog) SeedManga(ctx context.Context, seeds []Manga) error {
 	}
 	return tx.Commit()
 }
+
+// Insert real metadata without overwriting chapter releases or existing edits.
+// Hide only known fictional seed fingerprints; never remove old library targets.
+func (s *Catalog) InstallRealManga(ctx context.Context, seeds, legacy []Manga) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, m := range seeds {
+		genres, _ := json.Marshal(m.Genres)
+		if _, err = tx.ExecContext(ctx, `INSERT INTO manga(id,title,author,genres,status,total_chapters,description) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING`, m.ID, m.Title, m.Author, string(genres), m.Status, m.TotalChapters, m.Description); err != nil {
+			return err
+		}
+	}
+	for _, m := range legacy {
+		genres, _ := json.Marshal(m.Genres)
+		if _, err = tx.ExecContext(ctx, `INSERT INTO catalog_hidden(manga_id) SELECT id FROM manga WHERE id=? AND title=? AND author=? AND description=? AND genres=? ON CONFLICT(manga_id) DO NOTHING`, m.ID, m.Title, m.Author, m.Description, string(genres)); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
 func scanManga(row rowScanner) (Manga, error) {
 	var m Manga
 	var genres string
@@ -88,7 +112,7 @@ func (s *Catalog) GetManga(ctx context.Context, id string) (Manga, error) {
 	return scanManga(s.db.QueryRowContext(ctx, "SELECT id,title,author,genres,status,total_chapters,description FROM manga WHERE id=?", id))
 }
 func (s *Catalog) SearchManga(ctx context.Context, q string) ([]Manga, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT id,title,author,genres,status,total_chapters,description FROM manga WHERE title LIKE ? ESCAPE '\' ORDER BY title,id`, "%"+escapeLike(strings.TrimSpace(q))+"%")
+	rows, err := s.db.QueryContext(ctx, `SELECT id,title,author,genres,status,total_chapters,description FROM manga WHERE id NOT IN (SELECT manga_id FROM catalog_hidden) AND title LIKE ? ESCAPE '\' ORDER BY title,id`, "%"+escapeLike(strings.TrimSpace(q))+"%")
 	if err != nil {
 		return nil, err
 	}

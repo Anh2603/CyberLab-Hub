@@ -61,13 +61,14 @@ gRPC is a trusted internal service without transport authentication.
 Arrows/Enter select; Tab changes form controls; Esc returns to the menu.
 Manga Browser: F2 results, F3 search. Discussion: F2 message, F3 controls, F4 room.
 
-1. Register/login, search `Star`, select **Star Harbor**, and add it to **My Library**.
+1. Register/login, search `One Piece`, select **One Piece**, and add it to **My Library**.
 2. Open a second TUI under the same account and keep **My Library** visible.
    Change the chapter/status in the first. The second updates from a TCP event,
    without periodic polling. A different account does not receive that event.
 3. Subscribe in **Notifications** in two TUIs. In an admin TUI choose **Release
    chapter**, enter a new total greater than the catalog's current count, and
-   observe UDP alerts. Star Harbor starts at 12 chapters in an empty catalog.
+   observe UDP alerts. One Piece starts at 1199 chapters in the 2026-11-27 snapshot;
+   use 1200 for the first local demo release, or a higher count after repeated demos.
 4. Join `general` in two TUIs and `mystery` in another; demonstrate room isolation.
 5. Stop catalog, search again, observe a bounded error; restart catalog. Restart
    backend and verify the library persists.
@@ -91,9 +92,14 @@ temporary SQLite databases, and rendered tview simulation screens. See
 
 ## Known limitations and reuse
 
-- The 30 seeded titles are original fictional classroom metadata across six
-  genres, not a current commercial catalog. They are inserted only into an empty
-  manga table; restarts preserve chapter releases.
+- The seed contains 30 real manga titles across 14 genres. Metadata is a local
+  2026-11-27 snapshot, not a live publishing feed; chapter totals can include
+  extras according to the source. See [metadata sources](docs/MANGA_SOURCES.md).
+  Normal startup inserts records only into an empty manga table.
+- To upgrade the earlier fictional dataset, stop the catalog, back up its database,
+  run `go run ./cmd/catalog-refresh`, then restart it. This explicit migration
+  retains existing titles/releases and hides known fictional seeds from browsing;
+  old library entries remain usable. Repeating it is safe.
 - UDP is best-effort; subscriptions renew while active and expire on the server.
 - Chat has no persisted history. Reopen the TUI after a broken TCP connection;
   reconnecting reloads authoritative progress from HTTP/SQLite.

@@ -2,6 +2,8 @@ package catalog
 
 import (
 	"context"
+	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -70,9 +72,36 @@ func mangaError(err error) error {
 	return status.Error(codes.Internal, "catalog operation failed")
 }
 
-// Original fictional metadata for repeatable classroom demonstrations; no pages
-// or copyrighted reading content are distributed. Chapter counts are demo data.
+//go:embed manga_seed.json
+var mangaSeedJSON []byte
+
+func RealMangaSeeds() ([]store.Manga, error) {
+	var seeds []store.Manga
+	if err := json.Unmarshal(mangaSeedJSON, &seeds); err != nil {
+		return nil, err
+	}
+	return seeds, nil
+}
+
 func SeedManga(ctx context.Context, catalog *store.Catalog) error {
+	seeds, err := RealMangaSeeds()
+	if err != nil {
+		return err
+	}
+	return catalog.SeedManga(ctx, seeds)
+}
+
+// Refresh is an explicit operator action. Normal startup still seeds only an
+// empty catalog. Old fictional entries remain accessible to existing libraries.
+func RefreshMangaCatalog(ctx context.Context, catalog *store.Catalog) error {
+	seeds, err := RealMangaSeeds()
+	if err != nil {
+		return err
+	}
+	return catalog.InstallRealManga(ctx, seeds, legacyMangaSeeds())
+}
+
+func legacyMangaSeeds() []store.Manga {
 	titles := []string{"Star Harbor", "Clockwork Garden", "Moonlit Courier", "Paper Dragon", "Skyline Runners", "Ocean of Lanterns", "Silver Orchard", "Midnight Academy", "Forest of Echoes", "Crimson Compass", "Cloud Kitchen", "Winter Sonata Club", "Solar Knights", "Quiet Library", "Thunder Post", "Sapphire Trails", "Amber Detectives", "Dream Atlas", "Neon Workshop", "River Guardians", "Lost Constellation", "Tea House Days", "Iron Petals", "Summer Sketchbook", "Polar Expedition", "Secret Observatory", "Lantern Festival", "Wandering Alchemist", "Velvet Court", "Tomorrow Express"}
 	genres := []string{"Adventure", "Fantasy", "Science Fiction", "Mystery", "Slice of Life", "Sports"}
 	creators := []string{"M. Aoki", "R. Mori", "S. Hoshino", "K. Sato", "Y. Kato"}
@@ -87,5 +116,5 @@ func SeedManga(ctx context.Context, catalog *store.Catalog) error {
 		}
 		seeds = append(seeds, store.Manga{ID: strings.ReplaceAll(strings.ToLower(title), " ", "-"), Title: title, Author: creators[i%len(creators)], Genres: []string{genres[i%len(genres)], genres[(i+1)%len(genres)]}, Status: state, TotalChapters: 12 + i*7, Description: fmt.Sprintf("An original classroom manga metadata sample about %s. Follow its characters through a %s story. Metadata only; no reading pages are hosted.", strings.ToLower(title), strings.ToLower(genres[i%len(genres)]))})
 	}
-	return catalog.SeedManga(ctx, seeds)
+	return seeds
 }

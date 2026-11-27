@@ -9,7 +9,7 @@ commands now implement MangaHub F01–F06. Redis (F07) is optional and not imple
 | Three programs | `cmd/catalog`, `cmd/backend`, `cmd/tui` | Separate catalog TCP listener in integration tests |
 | F01 accounts | bcrypt, JWT, SQLite accounts; reader signup/admin bootstrap | Existing auth tests; MangaHub TUI signup test |
 | F02 search/detail | `/api/manga?q=`, `/api/manga/:id` call `MangaCatalog` gRPC | 30 records, empty search, unknown ID, stopped service |
-| Dataset | 30 distinct fictional metadata records, six genres; title, author, genres, status, total_chapters, description | `TestMangaConnectedWorkflowAndIsolation` |
+| Dataset | 30 real manga metadata records, 14 genres; title, author, genres, status, total_chapters, description | `TestMangaConnectedWorkflowAndIsolation`, `TestRealMangaSeedAndExplicitRefresh` |
 | F03 private library | `/api/library` add/list; unique `(user_id,manga_id)` | Duplicate returns error; cross-user isolation |
 | Reading progress | PUT `/api/library/:id/progress`; bounded chapter and status; server version increments | Invalid chapter/status; persisted version after reopen |
 | TCP assigned job | NDJSON auth + `progress_updated`; other same-user sessions only; after commit | Actual TCP payload and rendered second TUI chapter update |
@@ -26,9 +26,9 @@ commands now implement MangaHub F01–F06. Redis (F07) is optional and not imple
 - HTTP uses JWT-protected JSON endpoints; user ID comes from the verified token.
 - TCP starts with `{"type":"authenticate","token":"...","session_id":"..."}`
   and uses one JSON object per newline. A committed update emits
-  `{"type":"progress_updated","manga_id":"star-harbor","chapter":5,"status":"reading","version":2}`.
+  `{"type":"progress_updated","manga_id":"naruto","chapter":5,"status":"reading","version":2}`.
 - UDP uses one JSON per datagram. Releases emit
-  `{"type":"new_chapter","manga_id":"star-harbor","title":"Star Harbor","chapter":13}`.
+  `{"type":"new_chapter","manga_id":"one-piece","title":"One Piece","chapter":1200}`.
 - WebSocket uses the authenticated room URL `/api/ws/rooms/:room`, JSON body
   `{"body":"Hello"}` and server-assigned room/username/time. Fields differ from
   the example consistently; membership cannot be overridden in the payload.

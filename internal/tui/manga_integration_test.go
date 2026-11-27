@@ -135,13 +135,13 @@ func TestMangaConnectedWorkflowAndIsolation(t *testing.T) {
 	if _, err = a.GetManga(ctx, "unknown-manga"); err == nil {
 		t.Fatal("unknown id accepted")
 	}
-	if err = a.AddManga(ctx, "star-harbor"); err != nil {
+	if err = a.AddManga(ctx, "naruto"); err != nil {
 		t.Fatal(err)
 	}
-	if err = a.AddManga(ctx, "star-harbor"); err == nil {
+	if err = a.AddManga(ctx, "naruto"); err == nil {
 		t.Fatal("duplicate library entry accepted")
 	}
-	if err = other.AddManga(ctx, "moonlit-courier"); err != nil {
+	if err = other.AddManga(ctx, "one-piece"); err != nil {
 		t.Fatal(err)
 	}
 	// Authenticate three raw TCP sessions and assert the actual framed payload.
@@ -166,7 +166,7 @@ func TestMangaConnectedWorkflowAndIsolation(t *testing.T) {
 	ca, ra := connect(a)
 	cb, rb := connect(b)
 	cc, rc := connect(other)
-	entry, err := a.UpdateReading(ctx, "star-harbor", "reading", 5)
+	entry, err := a.UpdateReading(ctx, "naruto", "reading", 5)
 	if err != nil || entry.Version != 2 {
 		t.Fatalf("update: %#v %v", entry, err)
 	}
@@ -185,7 +185,7 @@ func TestMangaConnectedWorkflowAndIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = event
-	if payload["type"] != "progress_updated" || payload["manga_id"] != "star-harbor" || payload["chapter"] != float64(5) || payload["version"] != float64(2) {
+	if payload["type"] != "progress_updated" || payload["manga_id"] != "naruto" || payload["chapter"] != float64(5) || payload["version"] != float64(2) {
 		t.Fatalf("TCP event: %s", line)
 	}
 	for _, pair := range []struct {
@@ -197,19 +197,19 @@ func TestMangaConnectedWorkflowAndIsolation(t *testing.T) {
 			t.Fatalf("private/origin event leaked: %s", msg)
 		}
 	}
-	if _, err = a.UpdateReading(ctx, "star-harbor", "reading", 13); err == nil {
+	if _, err = a.UpdateReading(ctx, "naruto", "reading", 701); err == nil {
 		t.Fatal("chapter above total accepted")
 	}
-	if _, err = a.UpdateReading(ctx, "star-harbor", "reading", -1); err == nil {
+	if _, err = a.UpdateReading(ctx, "naruto", "reading", -1); err == nil {
 		t.Fatal("negative chapter accepted")
 	}
-	if _, err = a.UpdateReading(ctx, "star-harbor", "invented", 1); err == nil {
+	if _, err = a.UpdateReading(ctx, "naruto", "invented", 1); err == nil {
 		t.Fatal("invalid status accepted")
 	}
-	if _, err = other.UpdateReading(ctx, "star-harbor", "completed", 5); err == nil {
+	if _, err = other.UpdateReading(ctx, "naruto", "completed", 5); err == nil {
 		t.Fatal("other user's library changed")
 	}
-	if err = a.ReleaseChapter(ctx, "star-harbor", 13); err == nil {
+	if err = a.ReleaseChapter(ctx, "naruto", 701); err == nil {
 		t.Fatal("non-admin release accepted")
 	}
 	if _, err = other.requestTest(ctx, http.MethodGet, "/api/library"); err != nil {
@@ -237,14 +237,14 @@ func TestMangaConnectedWorkflowAndIsolation(t *testing.T) {
 		return conn
 	}
 	ua, ub, uc := subscribe(a, true), subscribe(b, true), subscribe(other, false)
-	if err = admin.ReleaseChapter(ctx, "star-harbor", 13); err != nil {
+	if err = admin.ReleaseChapter(ctx, "naruto", 701); err != nil {
 		t.Fatal(err)
 	}
 	for _, conn := range []*net.UDPConn{ua, ub} {
 		conn.SetReadDeadline(time.Now().Add(time.Second))
 		buf := make([]byte, 8192)
 		n, err := conn.Read(buf)
-		if err != nil || !strings.Contains(string(buf[:n]), `"chapter":13`) {
+		if err != nil || !strings.Contains(string(buf[:n]), `"chapter":701`) {
 			t.Fatalf("UDP release: %s %v", buf[:n], err)
 		}
 	}
@@ -252,12 +252,12 @@ func TestMangaConnectedWorkflowAndIsolation(t *testing.T) {
 	if _, err = uc.Read(make([]byte, 8192)); err == nil {
 		t.Fatal("unsubscribed client received notification")
 	}
-	if err = admin.ReleaseChapter(ctx, "star-harbor", 13); err == nil {
+	if err = admin.ReleaseChapter(ctx, "naruto", 701); err == nil {
 		t.Fatal("non-increasing release accepted")
 	}
 	// Existing TCP sockets can close; failed receiver must not prevent later writes.
 	cb.Close()
-	if _, err = a.UpdateReading(ctx, "star-harbor", "completed", 13); err != nil {
+	if _, err = a.UpdateReading(ctx, "naruto", "completed", 701); err != nil {
 		t.Fatal(err)
 	}
 	restarted, err := store.OpenBackend(ctx, h.backendPath)
@@ -266,7 +266,7 @@ func TestMangaConnectedWorkflowAndIsolation(t *testing.T) {
 	}
 	defer restarted.Close()
 	entries, err := restarted.ListLibrary(ctx, a.User().ID)
-	if err != nil || len(entries) != 1 || entries[0].CurrentChapter != 13 || entries[0].Version != 3 {
+	if err != nil || len(entries) != 1 || entries[0].CurrentChapter != 701 || entries[0].Version != 3 {
 		t.Fatalf("restart progress: %#v %v", entries, err)
 	}
 	catalogRestart, err := store.OpenCatalog(ctx, h.catalogPath)
@@ -277,8 +277,8 @@ func TestMangaConnectedWorkflowAndIsolation(t *testing.T) {
 	if err = catalog.SeedManga(ctx, catalogRestart); err != nil {
 		t.Fatal(err)
 	}
-	m, err := catalogRestart.GetManga(ctx, "star-harbor")
-	if err != nil || m.TotalChapters != 13 {
+	m, err := catalogRestart.GetManga(ctx, "naruto")
+	if err != nil || m.TotalChapters != 701 {
 		t.Fatalf("release lost at restart: %#v %v", m, err)
 	}
 	h.catalog.Stop()
@@ -373,7 +373,7 @@ func TestMangaTerminalVisibleProgressAndNotifications(t *testing.T) {
 	admin := h.client(t, "operator", false)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	if err := a.AddManga(ctx, "star-harbor"); err != nil {
+	if err := a.AddManga(ctx, "naruto"); err != nil {
 		t.Fatal(err)
 	}
 	terminal := startMangaTerminal(t, b)
@@ -383,7 +383,7 @@ func TestMangaTerminalVisibleProgressAndNotifications(t *testing.T) {
 	syncStatus := make(chan string, 16)
 	go b.RunProgressSync(ctx, terminal.ui.events, syncStatus)
 	waitForEvent(t, syncStatus, "TCP progress sync connected")
-	if _, err := a.UpdateReading(ctx, "star-harbor", "reading", 7); err != nil {
+	if _, err := a.UpdateReading(ctx, "naruto", "reading", 7); err != nil {
 		t.Fatal(err)
 	}
 	terminal.wait(func() bool {
@@ -407,18 +407,18 @@ func TestMangaTerminalVisibleProgressAndNotifications(t *testing.T) {
 		}
 	}
 subscribed:
-	if err := admin.ReleaseChapter(ctx, "star-harbor", 13); err != nil {
+	if err := admin.ReleaseChapter(ctx, "naruto", 701); err != nil {
 		t.Fatal(err)
 	}
-	terminal.wait(func() bool { return strings.Contains(terminal.ui.alerts.GetText(true), "New chapter: Star Harbor") })
+	terminal.wait(func() bool { return strings.Contains(terminal.ui.alerts.GetText(true), "New chapter: Naruto") })
 	terminal.do(terminal.ui.browser)
 	terminal.wait(func() bool { return strings.Contains(terminal.ui.status.GetText(true), "30 manga found") })
-	if !strings.Contains(terminal.snapshot(), "Amber Detectives") {
+	if !strings.Contains(terminal.snapshot(), "20th Century Boys") {
 		t.Fatal("catalog browser not rendered")
 	}
-	terminal.do(func() { terminal.ui.details("star-harbor") })
+	terminal.do(func() { terminal.ui.details("naruto") })
 	terminal.wait(func() bool { name, _ := terminal.ui.pages.GetFrontPage(); return name == "details" })
-	if text := terminal.snapshot(); !strings.Contains(text, "Total chapters: 13") || !strings.Contains(text, "Add to Library") {
+	if text := terminal.snapshot(); !strings.Contains(text, "Total chapters: 701") || !strings.Contains(text, "Add to Library") {
 		t.Fatalf("missing manga details: %s", text)
 	}
 }
@@ -485,7 +485,7 @@ func TestMangaTerminalSignupAddAndUpdateControls(t *testing.T) {
 		click(f.GetButton(0))
 	})
 	term.wait(func() bool { name, _ := term.ui.pages.GetFrontPage(); return name == "main" })
-	term.do(func() { term.ui.details("star-harbor") })
+	term.do(func() { term.ui.details("naruto") })
 	term.wait(func() bool { name, _ := term.ui.pages.GetFrontPage(); return name == "details" })
 	term.do(func() {
 		_, p := term.ui.pages.GetFrontPage()

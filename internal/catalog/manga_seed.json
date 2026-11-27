@@ -1,0 +1,517 @@
+[
+  {
+    "id": "one-piece",
+    "title": "One Piece",
+    "author": "Eiichirou Oda",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Fantasy"
+    ],
+    "status": "ongoing",
+    "total_chapters": 1199,
+    "description": "A pirate crew searches for a legendary treasure.",
+    "source_url": "https://anilist.co/manga/30013",
+    "chapter_source_url": "https://www.viz.com/shonenjump/chapters/one-piece",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "naruto",
+    "title": "Naruto",
+    "author": "Masashi Kishimoto",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 700,
+    "description": "A young ninja seeks recognition and protects his village.",
+    "source_url": "https://anilist.co/manga/30011",
+    "chapter_source_url": "https://anilist.co/manga/30011",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "bleach",
+    "title": "Bleach",
+    "author": "Tite Kubo",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 706,
+    "description": "A teenager gains powers to defend people from spirits.",
+    "source_url": "https://anilist.co/manga/30012",
+    "chapter_source_url": "https://anilist.co/manga/30012",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "attack-on-titan",
+    "title": "Attack on Titan",
+    "author": "Hajime Isayama",
+    "genres": [
+      "Action",
+      "Drama",
+      "Fantasy",
+      "Mystery"
+    ],
+    "status": "completed",
+    "total_chapters": 141,
+    "description": "Survivors investigate the giants threatening their walled cities.",
+    "source_url": "https://anilist.co/manga/53390",
+    "chapter_source_url": "https://anilist.co/manga/53390",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "demon-slayer",
+    "title": "Demon Slayer: Kimetsu no Yaiba",
+    "author": "Koyoharu Gotouge",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Drama",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 207,
+    "description": "A swordsman searches for a cure for his sister.",
+    "source_url": "https://anilist.co/manga/87216",
+    "chapter_source_url": "https://anilist.co/manga/87216",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "death-note",
+    "title": "Death Note",
+    "author": "Tsugumi Ooba / Takeshi Obata",
+    "genres": [
+      "Drama",
+      "Mystery",
+      "Psychological",
+      "Supernatural",
+      "Thriller"
+    ],
+    "status": "completed",
+    "total_chapters": 108,
+    "description": "A mysterious notebook sparks a battle of wits.",
+    "source_url": "https://anilist.co/manga/30021",
+    "chapter_source_url": "https://anilist.co/manga/30021",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "fullmetal-alchemist",
+    "title": "Fullmetal Alchemist",
+    "author": "Hiromu Arakawa",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Drama",
+      "Fantasy"
+    ],
+    "status": "completed",
+    "total_chapters": 116,
+    "description": "Two brothers investigate alchemy while seeking their lost bodies.",
+    "source_url": "https://anilist.co/manga/30025",
+    "chapter_source_url": "https://anilist.co/manga/30025",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "jujutsu-kaisen",
+    "title": "Jujutsu Kaisen",
+    "author": "Gege Akutami",
+    "genres": [
+      "Action",
+      "Drama",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 272,
+    "description": "Students confront curses through dangerous supernatural battles.",
+    "source_url": "https://anilist.co/manga/101517",
+    "chapter_source_url": "https://anilist.co/manga/101517",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "chainsaw-man",
+    "title": "Chainsaw Man",
+    "author": "Tatsuki Fujimoto",
+    "genres": [
+      "Action",
+      "Comedy",
+      "Drama",
+      "Horror",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 232,
+    "description": "A struggling youth becomes entangled with devil hunters.",
+    "source_url": "https://anilist.co/manga/105778",
+    "chapter_source_url": "https://anilist.co/manga/105778",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "my-hero-academia",
+    "title": "My Hero Academia",
+    "author": "Kouhei Horikoshi",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Drama",
+      "Fantasy"
+    ],
+    "status": "completed",
+    "total_chapters": 432,
+    "description": "An aspiring hero trains in a society of superpowers.",
+    "source_url": "https://anilist.co/manga/85486",
+    "chapter_source_url": "https://anilist.co/manga/85486",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "vinland-saga",
+    "title": "Vinland Saga",
+    "author": "Makoto Yukimura",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Drama"
+    ],
+    "status": "completed",
+    "total_chapters": 224,
+    "description": "A warrior confronts revenge and searches for peace.",
+    "source_url": "https://anilist.co/manga/30642",
+    "chapter_source_url": "https://anilist.co/manga/30642",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "the-promised-neverland",
+    "title": "The Promised Neverland",
+    "author": "Kaiu Shirai / Posuka Demizu",
+    "genres": [
+      "Drama",
+      "Fantasy",
+      "Horror",
+      "Mystery",
+      "Psychological",
+      "Thriller"
+    ],
+    "status": "completed",
+    "total_chapters": 181,
+    "description": "Children uncover a secret and plan an escape.",
+    "source_url": "https://anilist.co/manga/87423",
+    "chapter_source_url": "https://anilist.co/manga/87423",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "haikyu",
+    "title": "Haikyu!!",
+    "author": "Haruichi Furudate",
+    "genres": [
+      "Comedy",
+      "Drama",
+      "Sports"
+    ],
+    "status": "completed",
+    "total_chapters": 404,
+    "description": "A determined volleyball team learns to compete together.",
+    "source_url": "https://anilist.co/manga/65243",
+    "chapter_source_url": "https://anilist.co/manga/65243",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "tokyo-ghoul",
+    "title": "Tokyo Ghoul",
+    "author": "Sui Ishida",
+    "genres": [
+      "Action",
+      "Horror",
+      "Mystery",
+      "Psychological",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 144,
+    "description": "A student struggles between human and ghoul identities.",
+    "source_url": "https://anilist.co/manga/63327",
+    "chapter_source_url": "https://anilist.co/manga/63327",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "tokyo-ghoul-re",
+    "title": "Tokyo Ghoul:re",
+    "author": "Sui Ishida",
+    "genres": [
+      "Action",
+      "Drama",
+      "Horror",
+      "Mystery",
+      "Psychological",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 181,
+    "description": "Investigators face conflicts linking humans and ghouls.",
+    "source_url": "https://anilist.co/manga/85611",
+    "chapter_source_url": "https://anilist.co/manga/85611",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "dr-stone",
+    "title": "Dr. STONE",
+    "author": "Riichirou Inagaki / Boichi",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Sci-Fi"
+    ],
+    "status": "completed",
+    "total_chapters": 236,
+    "description": "Young scientists rebuild civilization after humanity turns to stone.",
+    "source_url": "https://anilist.co/manga/98416",
+    "chapter_source_url": "https://anilist.co/manga/98416",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "black-clover",
+    "title": "Black Clover",
+    "author": "Yuuki Tabata",
+    "genres": [
+      "Action",
+      "Comedy",
+      "Drama",
+      "Fantasy"
+    ],
+    "status": "completed",
+    "total_chapters": 392,
+    "description": "A boy without magic pursues a magical leadership role.",
+    "source_url": "https://anilist.co/manga/86123",
+    "chapter_source_url": "https://anilist.co/manga/86123",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "kaguya-sama-love-is-war",
+    "title": "Kaguya-sama: Love is War",
+    "author": "Aka Akasaka",
+    "genres": [
+      "Comedy",
+      "Psychological",
+      "Romance",
+      "Slice of Life"
+    ],
+    "status": "completed",
+    "total_chapters": 281,
+    "description": "Two student leaders compete to conceal their feelings.",
+    "source_url": "https://anilist.co/manga/86635",
+    "chapter_source_url": "https://anilist.co/manga/86635",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "horimiya",
+    "title": "Horimiya",
+    "author": "HERO / Daisuke Hagiwara",
+    "genres": [
+      "Comedy",
+      "Romance",
+      "Slice of Life"
+    ],
+    "status": "completed",
+    "total_chapters": 152,
+    "description": "Schoolmates discover unexpected sides of each other.",
+    "source_url": "https://anilist.co/manga/72451",
+    "chapter_source_url": "https://anilist.co/manga/72451",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "komi-cant-communicate",
+    "title": "Komi Can't Communicate",
+    "author": "Tomohito Oda",
+    "genres": [
+      "Comedy",
+      "Romance",
+      "Slice of Life"
+    ],
+    "status": "completed",
+    "total_chapters": 537,
+    "description": "A shy student works toward friendship and communication.",
+    "source_url": "https://anilist.co/manga/97852",
+    "chapter_source_url": "https://anilist.co/manga/97852",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "tokyo-revengers",
+    "title": "Tokyo Revengers",
+    "author": "Ken Wakui",
+    "genres": [
+      "Action",
+      "Drama",
+      "Romance",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 279,
+    "description": "Time travel gives a man chances to change tragedy.",
+    "source_url": "https://anilist.co/manga/102988",
+    "chapter_source_url": "https://anilist.co/manga/102988",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "20th-century-boys",
+    "title": "20th Century Boys",
+    "author": "Naoki Urasawa",
+    "genres": [
+      "Drama",
+      "Mystery",
+      "Psychological",
+      "Sci-Fi",
+      "Thriller"
+    ],
+    "status": "completed",
+    "total_chapters": 249,
+    "description": "Childhood memories connect friends to a dangerous conspiracy.",
+    "source_url": "https://anilist.co/manga/30003",
+    "chapter_source_url": "https://anilist.co/manga/30003",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "monster",
+    "title": "Monster",
+    "author": "Naoki Urasawa",
+    "genres": [
+      "Drama",
+      "Mystery",
+      "Psychological",
+      "Thriller"
+    ],
+    "status": "completed",
+    "total_chapters": 162,
+    "description": "A doctor investigates the consequences of saving a child.",
+    "source_url": "https://anilist.co/manga/30001",
+    "chapter_source_url": "https://anilist.co/manga/30001",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "oshi-no-ko",
+    "title": "[Oshi no Ko]",
+    "author": "Aka Akasaka / Mengo Yokoyari",
+    "genres": [
+      "Drama",
+      "Mystery",
+      "Psychological",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 171,
+    "description": "Young performers navigate ambition and secrets in entertainment.",
+    "source_url": "https://anilist.co/manga/117195",
+    "chapter_source_url": "https://anilist.co/manga/117195",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "kaiju-no-8",
+    "title": "Kaiju No.8",
+    "author": "Naoya Matsumoto",
+    "genres": [
+      "Action",
+      "Sci-Fi"
+    ],
+    "status": "completed",
+    "total_chapters": 129,
+    "description": "A cleanup worker gains a powerful monster transformation.",
+    "source_url": "https://anilist.co/manga/120760",
+    "chapter_source_url": "https://anilist.co/manga/120760",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "steel-ball-run",
+    "title": "Steel Ball Run",
+    "author": "Hirohiko Araki",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Drama",
+      "Mystery",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 95,
+    "description": "Racers cross a continent amid extraordinary dangers.",
+    "source_url": "https://anilist.co/manga/31706",
+    "chapter_source_url": "https://anilist.co/manga/31706",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "hells-paradise",
+    "title": "Hell's Paradise: Jigokuraku",
+    "author": "Yuuji Kaku",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Mystery",
+      "Supernatural"
+    ],
+    "status": "completed",
+    "total_chapters": 127,
+    "description": "Condemned fighters explore an island in search of immortality.",
+    "source_url": "https://anilist.co/manga/100994",
+    "chapter_source_url": "https://anilist.co/manga/100994",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "a-silent-voice",
+    "title": "A Silent Voice",
+    "author": "Yoshitoki Ooima",
+    "genres": [
+      "Drama",
+      "Romance",
+      "Slice of Life"
+    ],
+    "status": "completed",
+    "total_chapters": 64,
+    "description": "Former classmates confront bullying and rebuild their relationships.",
+    "source_url": "https://anilist.co/manga/85135",
+    "chapter_source_url": "https://anilist.co/manga/85135",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "dorohedoro",
+    "title": "Dorohedoro",
+    "author": "Q Hayashida",
+    "genres": [
+      "Action",
+      "Adventure",
+      "Comedy",
+      "Fantasy",
+      "Horror",
+      "Mystery"
+    ],
+    "status": "completed",
+    "total_chapters": 191,
+    "description": "An amnesiac searches for answers in a sorcerous world.",
+    "source_url": "https://anilist.co/manga/31133",
+    "chapter_source_url": "https://anilist.co/manga/31133",
+    "metadata_as_of": "2026-11-27"
+  },
+  {
+    "id": "land-of-the-lustrous",
+    "title": "Land of the Lustrous",
+    "author": "Haruko Ichikawa",
+    "genres": [
+      "Action",
+      "Drama",
+      "Fantasy",
+      "Mystery",
+      "Psychological",
+      "Sci-Fi"
+    ],
+    "status": "completed",
+    "total_chapters": 120,
+    "description": "Gemlike beings seek purpose amid transformations and conflict.",
+    "source_url": "https://anilist.co/manga/74489",
+    "chapter_source_url": "https://anilist.co/manga/74489",
+    "metadata_as_of": "2026-11-27"
+  }
+]

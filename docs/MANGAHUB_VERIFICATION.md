@@ -9,18 +9,18 @@ Run `go test -count=1 -run TestManga -timeout 60s ./internal/tui`.
 
 | Case | Expected | Observed in conversion run |
 | --- | --- | --- |
-| Catalog | 30 complete records, at least four genres | 30 records, six genres |
+| Catalog | 30 complete records, at least four genres | 30 real titles, 14 genres |
 | Empty/unknown search | Empty list / missing-ID error | Both verified |
 | Personal library | Account ownership; no duplicate add | Duplicate rejected; another account could not update owner's entry |
 | Chapter validation | Reject negative, above-total, unsupported status | All rejected |
 | TCP | Other same-account session receives exact committed version/chapter | Received `progress_updated`, chapter 5, version 2; origin and different user received none |
 | Visible TUI progress | Second TUI updates without manual refresh | Rendered library changed to chapter 7/version 2 after TCP event |
-| UDP release | Two subscribed clients receive new total; non-subscriber receives none | Chapter 13 delivered to both subscribers, none to non-subscriber |
+| UDP release | Two subscribed clients receive new total; non-subscriber receives none | Local Naruto test release to chapter 701 delivered to both subscribers, none to non-subscriber |
 | Release authorization | Non-admin and non-increasing total rejected | Both rejected |
-| TUI notification | Incoming datagram visible in widget | `New chapter: Star Harbor` displayed |
+| TUI notification | Incoming datagram visible in widget | `New chapter: Naruto` displayed |
 | TUI controls | Signup → add title → edit reading progress | Form actions saved reading/chapter 8 |
 | Chat | Sender and same room receive; other room receives none | Both general-room clients received; mystery-room client received none |
-| SQLite restart | Progress/version and released chapter remain | Reopened databases retained chapter 13 and library version 3; reseeding did not overwrite |
+| SQLite restart | Progress/version and released chapter remain | Reopened test databases retained chapter 701 and library version 3; reseeding did not overwrite |
 | Catalog stop | Bounded error rather than hanging | HTTP client failed within two-second assertion |
 
 These are automated observations on temporary databases and actual loopback

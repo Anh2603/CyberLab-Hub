@@ -64,6 +64,21 @@ an assumed success based only on generated code compiling.
 
 ## Limitations to explain
 
+Chat/UI hardening checks: `node --test scripts/test-web.cjs` executes the shipped
+web script with controlled DOM/network boundaries. It verifies Discussions does
+not request the catalog, pending chat drafts survive disconnect, server echoes
+clear confirmed drafts, duplicate actions are blocked, and transport failures
+update connection status. These are behavioral checks, not a full browser visual
+test. Node.js is required by `scripts/verify-demo.ps1` for these checks.
+
+Go chat regressions verify ordered delivery of 20 messages through a one-slot
+queue, disconnect reporting, cancellation with a blocked UI, UTF-8 byte limits,
+visible TUI draft preservation and mutation guards releasing after failure.
+The client no longer silently drops chat events when its UI queue is full.
+The server may disconnect clients that cannot keep up; no chat replay is promised.
+The web keeps an unconfirmed draft until its own message echo arrives, or warns
+on disconnect/timeout. It does not automatically resend uncertain messages.
+
 UDP has no delivery guarantee. Chat history is not persisted. TCP reconnect uses
 backoff; changing JWT secrets requires signing in again. Redis is not implemented.
 The web interface supplements rather than replaces the required Go tview demo.

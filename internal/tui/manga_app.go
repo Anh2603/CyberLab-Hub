@@ -82,6 +82,32 @@ func (u *MangaUI) task(work func() error, done func()) {
 		})
 	}()
 }
+
+// Keep mutations single-flight, including when the user changes screens mid-request.
+func (u *MangaUI) mutate(work func() error, done func()) {
+	if u.busy {
+		return
+	}
+	u.busy = true
+	u.status.SetText("Saving…")
+	revision := u.revision
+	go func() {
+		err := work()
+		u.app.QueueUpdateDraw(func() {
+			u.busy = false
+			if u.revision != revision {
+				return
+			}
+			if err != nil {
+				u.status.SetText("Error: " + err.Error())
+				return
+			}
+			if done != nil {
+				done()
+			}
+		})
+	}()
+}
 func (u *MangaUI) show(name string, body tview.Primitive) {
 	u.revision++
 	u.libraryVisible = name == "library"
@@ -204,7 +230,7 @@ func (u *MangaUI) details(id string) {
 		text := tview.NewTextView().SetText(fmt.Sprintf("%s\nAuthor: %s\nGenres: %s\nStatus: %s\nTotal chapters: %d\n\n%s", m.Title, m.Author, strings.Join(m.Genres, ", "), m.Status, m.TotalChapters, m.Description))
 		text.SetBorder(true).SetTitle(" Manga details ")
 		form := tview.NewForm().AddButton("Add to Library", func() {
-			u.task(func() error { return u.client.AddManga(u.ctx, id) }, func() { u.status.SetText("Added to your library") })
+			u.mutate(func() error { return u.client.AddManga(u.ctx, id) }, func() { u.status.SetText("Added to your library") })
 		}).AddButton("Back", u.browser)
 		u.show("details", u.wrap(tview.NewFlex().SetDirection(tview.FlexRow).AddItem(text, 0, 1, false).AddItem(form, 5, 0, true)))
 	})
@@ -279,7 +305,7 @@ func (u *MangaUI) editProgress(entry store.LibraryEntry) {
 				return
 			}
 			_, state := form.GetFormItemByLabel("Status").(*tview.DropDown).GetCurrentOption()
-			u.task(func() error { _, err := u.client.UpdateReading(u.ctx, m.ID, state, chapter); return err }, u.libraryScreen)
+			u.mutate(func() error { _, err := u.client.UpdateReading(u.ctx, m.ID, state, chapter); return err }, u.libraryScreen)
 		}).AddButton("Cancel", u.libraryScreen)
 		u.show("details", u.wrap(form))
 		u.status.SetText(fmt.Sprintf("Total chapters: %d. Server validates again before saving.", m.TotalChapters))
@@ -308,6 +334,7 @@ func (u *MangaUI) discussion() {
 	log.SetBorder(true).SetTitle(" Discussion messages (local date/time) ")
 	input := tview.NewInputField().SetLabel("Message: ")
 	var send func(string) error
+	var sending bool
 	controls := tview.NewForm().AddButton("Join", func() {
 		if u.roomCancel != nil {
 			u.roomCancel()
@@ -326,6 +353,9 @@ func (u *MangaUI) discussion() {
 			}
 			return err
 		}, func() {
+			if roomCtx.Err() != nil {
+				return
+			}
 			send = nextSend
 			u.status.SetText("Connected to " + name + ". Enter sends; F2 message, F3 controls, F4 room.")
 			u.app.SetFocus(input)
@@ -333,7 +363,20 @@ func (u *MangaUI) discussion() {
 		go func() {
 			for message := range events {
 				message := message
-				u.app.QueueUpdateDraw(func() { fmt.Fprintln(log, message); log.ScrollToEnd() })
+				u.app.QueueUpdateDraw(func() {
+					if roomCtx.Err() != nil {
+						return
+					}
+					fmt.Fprintln(log, message)
+					log.ScrollToEnd()
+					if strings.HasPrefix(message, "Discussion disconnected") {
+						send = nil
+						u.status.SetText(message)
+					}
+					if strings.HasPrefix(message, "Discussion error:") {
+						u.status.SetText(message)
+					}
+				})
 			}
 		}()
 	}).AddButton("Back", u.main)
@@ -346,6 +389,9 @@ func (u *MangaUI) discussion() {
 		if key != tcell.KeyEnter {
 			return
 		}
+		if sending {
+			return
+		}
 		text := input.GetText()
 		if strings.TrimSpace(text) == "" {
 			return
@@ -354,9 +400,25 @@ func (u *MangaUI) discussion() {
 			u.status.SetText("Join a room first")
 			return
 		}
-		input.SetText("")
 		sender := send
-		u.task(func() error { return sender(text) }, nil)
+		sending = true
+		revision := u.revision
+		go func() {
+			err := sender(text)
+			u.app.QueueUpdateDraw(func() {
+				sending = false
+				if u.revision != revision {
+					return
+				}
+				if err != nil {
+					u.status.SetText("Send failed; draft kept: " + err.Error())
+					return
+				}
+				if input.GetText() == text {
+					input.SetText("")
+				}
+			})
+		}()
 	})
 	layout := tview.NewFlex().SetDirection(tview.FlexRow).AddItem(room, 2, 0, false).AddItem(controls, 5, 0, true).AddItem(log, 0, 1, false).AddItem(input, 3, 0, false)
 	layout.SetInputCapture(func(e *tcell.EventKey) *tcell.EventKey {
@@ -387,7 +449,7 @@ func (u *MangaUI) release() {
 			u.status.SetText("Enter an integer chapter count")
 			return
 		}
-		u.task(func() error { return u.client.ReleaseChapter(u.ctx, id, total) }, func() { u.status.SetText("Catalog updated through gRPC; UDP alert sent best-effort") })
+		u.mutate(func() error { return u.client.ReleaseChapter(u.ctx, id, total) }, func() { u.status.SetText("Catalog updated through gRPC; UDP alert sent best-effort") })
 	}).AddButton("Back", u.main)
 	u.show("release", u.wrap(form))
 }

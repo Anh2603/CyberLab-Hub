@@ -354,16 +354,33 @@ func (c *Client) JoinRoom(ctx context.Context, room string, events chan<- string
 				Body     string    `json:"body"`
 				SentAt   time.Time `json:"sent_at"`
 				Type     string    `json:"type"`
+				Error    string    `json:"error"`
 			}
 			if err := connection.ReadJSON(&message); err != nil {
+				if ctx.Err() == nil {
+					deliverProgress(ctx, events, "Discussion disconnected. Join the room again; chat history is not stored.")
+				}
 				return
 			}
 			if message.Type == "message" {
-				nonBlocking(events, message.SentAt.Local().Format("02/01/2006 15:04:05")+" "+message.Username+": "+message.Body)
+				if !deliverProgress(ctx, events, message.SentAt.Local().Format("02/01/2006 15:04:05")+" "+message.Username+": "+message.Body) {
+					return
+				}
+			} else if message.Type == "error" {
+				if !deliverProgress(ctx, events, "Discussion error: "+message.Error) {
+					return
+				}
 			}
 		}
 	}()
 	send := func(body string) error {
+		body = strings.TrimSpace(body)
+		if len(body) == 0 || len(body) > 2048 {
+			return errors.New("message must contain 1-2048 bytes")
+		}
+		if ctx.Err() != nil {
+			return errors.New("discussion disconnected; join the room again")
+		}
 		writeMu.Lock()
 		defer writeMu.Unlock()
 		_ = connection.SetWriteDeadline(time.Now().Add(5 * time.Second))

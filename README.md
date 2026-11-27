@@ -7,6 +7,10 @@ chapter-release notifications, and discuss titles. No manga pages are hosted.
 ## Prerequisites
 
 - Go 1.26+ with automatic toolchain downloads (`go.mod` selects Go 1.27.4).
+- Node.js 22+ on PATH for the supplementary web checks in `verify-demo.ps1`
+  (verified here with Node.js 24.14.1). Node.js is not required to run the
+  Go backend, catalog, or TUI. No npm install is needed for these checks.
+- PowerShell for the provided `.ps1` verification and packaging scripts.
 - Three terminals, minimum 110 columns × 35 rows for the TUI.
 - Dependencies: `go mod download`. No Redis, Docker, or external metadata API required.
 
@@ -78,12 +82,26 @@ The **required demo uses the Go TUI**; browser views do not replace TCP/UDP evid
 
 ## Checks
 
+For the Go application checks, only the Go toolchain is needed:
+
 ```powershell
 go test -count=1 ./...
 go vet ./...
 go build ./cmd/backend ./cmd/catalog ./cmd/tui
+```
+
+For all checks, including the web behavior tests and independent-process restart
+test, confirm Node.js 22+ is available and run:
+
+```powershell
+node --version
 ./scripts/verify-demo.ps1 -ProcessRestart
 ```
+
+Without `-ProcessRestart`, the script runs web checks, Go tests, vet and build
+but skips the separate backend/catalog process-restart test. Missing tools or
+an unsupported Node.js version stop the script with an explanation; checks are
+not silently skipped.
 
 The MangaHub integration tests use real HTTP/TCP/UDP/WebSocket/gRPC listeners,
 temporary SQLite databases, and rendered tview simulation screens. See

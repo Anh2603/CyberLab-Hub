@@ -2,10 +2,12 @@ package tcp
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"regexp"
 	"sync"
@@ -85,8 +87,7 @@ func (s *Server) handleConnection(connection net.Conn) {
 		return
 	}
 	_ = connection.SetReadDeadline(time.Now().Add(s.authTimeout))
-	scanner := bufio.NewScanner(connection)
-	scanner.Buffer(make([]byte, 1024), maxMessageBytes)
+	scanner := newFrameScanner(connection)
 	if !scanner.Scan() {
 		return
 	}
@@ -134,6 +135,27 @@ func (s *Server) handleConnection(connection net.Conn) {
 		}
 		client.queue(map[string]string{"type": "pong"})
 	}
+}
+
+func newFrameScanner(reader io.Reader) *bufio.Scanner {
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 1024), maxMessageBytes+1)
+	scanner.Split(func(data []byte, atEOF bool) (int, []byte, error) {
+		if end := bytes.IndexByte(data, '\n'); end >= 0 {
+			if end > maxMessageBytes {
+				return 0, nil, errors.New("TCP frame too large")
+			}
+			return end + 1, data[:end], nil
+		}
+		if len(data) > maxMessageBytes {
+			return 0, nil, errors.New("TCP frame too large")
+		}
+		if atEOF && len(data) > 0 {
+			return 0, nil, errors.New("TCP frame missing newline")
+		}
+		return 0, nil, nil
+	})
+	return scanner
 }
 
 type client struct {

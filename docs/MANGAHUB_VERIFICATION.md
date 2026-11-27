@@ -62,6 +62,27 @@ UpdateChaptersResponse. `buf lint` and `buf format --diff --exit-code` are part
 of the release verification. This records the actual checked contract, not
 an assumed success based only on generated code compiling.
 
+## TCP framing and WebSocket edge cases
+
+The `TestTCPFraming*` cases verify fragmented/coalesced messages on a real TCP
+listener, no processing before newline, authentication timeout for an unfinished
+frame, malformed JSON recovery, byte limits, and continued service for a healthy
+client. Scanner boundary cases verify complete frames, clean EOF and rejection
+of an unterminated final frame. The latter failed before the fix: Go's default
+line scanner accepts the final token at EOF even without a newline. The server
+now uses an explicit newline-required split function with an 8192-byte payload
+limit, excluding the delimiter.
+
+WebSocket edge tests cover malformed JSON, wrong body types, missing/blank
+bodies, binary messages, oversized UTF-8/ASCII bodies, and exact 2048-byte valid
+bodies. Errors stay with the offending connection; peers can still exchange
+valid messages. A frame exceeding 4096 bytes closes only its sender with code
+1009, removes it from the Hub, and leaves a healthy client usable. Forged room
+and username fields do not replace authenticated server-side membership.
+
+The new TCP and WebSocket edge tests passed 20 consecutive runs each. The TCP
+scanner was the only production behavior changed by this verification step.
+
 ## Concurrent chapter release regression
 
 The release regression failed before the fix: a request setting chapter 2 could

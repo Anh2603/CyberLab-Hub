@@ -120,13 +120,17 @@ func TestMangaTerminalMutationGuardUnlocksAfterFailure(t *testing.T) {
 }
 
 func TestChatFullQueueCancelsAndRejectsOversizeDraft(t *testing.T) {
+	messageSent := make(chan error, 1)
+	socketClosed := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer close(socketClosed)
 		conn, err := (&websocket.Upgrader{}).Upgrade(w, r, nil)
 		if err != nil {
+			messageSent <- err
 			return
 		}
 		defer conn.Close()
-		_ = conn.WriteJSON(map[string]any{"type": "message", "username": "alice", "body": "busy", "sent_at": time.Now().UTC()})
+		messageSent <- conn.WriteJSON(map[string]any{"type": "message", "username": "alice", "body": "busy", "sent_at": time.Now().UTC()})
 		_, _, _ = conn.ReadMessage()
 	}))
 	defer server.Close()
@@ -138,16 +142,42 @@ func TestChatFullQueueCancelsAndRejectsOversizeDraft(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// No UI receiver is active while the server sends the message.
+	select {
+	case err := <-messageSent:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("server did not send the pending message")
+	}
 	if err := send(strings.Repeat("界", 700)); err == nil {
 		t.Fatal("oversized UTF-8 draft accepted")
 	}
 	cancel()
-	select {
-	case _, ok := <-events:
-		if ok {
-			t.Fatal("unexpected message after cancellation")
+	deadline := time.NewTimer(time.Second)
+	defer deadline.Stop()
+	// Cancellation and an already pending delivery can both be selectable.
+	// Accept that in-flight message, but require the reader and socket to close
+	// within one shared deadline; do not reset the timeout on each message.
+	inFlight := 0
+	for {
+		select {
+		case message, ok := <-events:
+			if !ok {
+				select {
+				case <-socketClosed:
+					return
+				case <-deadline.C:
+					t.Fatal("cancellation did not close the WebSocket")
+				}
+			}
+			inFlight++
+			if inFlight > 1 || !strings.HasSuffix(message, "alice: busy") {
+				t.Fatalf("unexpected in-flight message: %q", message)
+			}
+		case <-deadline.C:
+			t.Fatal("full queue prevented reader shutdown")
 		}
-	case <-time.After(time.Second):
-		t.Fatal("full queue prevented cancellation")
 	}
 }

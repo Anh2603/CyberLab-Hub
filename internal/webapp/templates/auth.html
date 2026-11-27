@@ -4,15 +4,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{.Title}} · CyberLab Hub</title>
+  <title>{{.Title}} · MangaHub</title>
   <link rel="stylesheet" href="/assets/app.css">
   <script src="/assets/auth.js" defer></script>
 </head>
 <body class="auth-page">
   <header class="auth-header">
-    <a class="brand" href="/login" aria-label="CyberLab Hub home">
-      <span class="brand-mark" aria-hidden="true">CH</span>
-      <span><strong>CyberLab Hub</strong><small>Learning workspace</small></span>
+    <a class="brand" href="/login" aria-label="MangaHub home">
+      <span class="brand-mark" aria-hidden="true">MH</span>
+      <span><strong>MangaHub</strong><small>Reading workspace</small></span>
     </a>
     <span class="service-state"><span aria-hidden="true"></span>Service ready</span>
   </header>
@@ -20,13 +20,13 @@
   <main class="auth-main">
     <section class="auth-card" aria-labelledby="auth-title">
       {{if eq .Mode "signup"}}
-      <p class="eyebrow">Learner account</p>
+      <p class="eyebrow">Reader account</p>
       <h1 id="auth-title">Create your account</h1>
-      <p class="lede">Create one learner account to solve challenges and track progress.</p>
+      <p class="lede">Discover manga, build your library, and track reading progress.</p>
       {{else}}
       <p class="eyebrow">Secure access</p>
-      <h1 id="auth-title">Log in to CyberLab Hub</h1>
-      <p class="lede">Continue to your cybersecurity learning workspace.</p>
+      <h1 id="auth-title">Log in to MangaHub</h1>
+      <p class="lede">Continue to your personal reading workspace.</p>
       {{end}}
 
       <div id="form-alert" class="form-alert" role="alert" aria-live="polite" tabindex="-1" hidden></div>
@@ -68,11 +68,11 @@
       {{else}}
       <p class="auth-switch">Don’t have an account? <a href="/signup">Sign up</a></p>
       {{end}}
-      <noscript><p class="form-alert">JavaScript is required to connect this form to CyberLab Hub.</p></noscript>
+      <noscript><p class="form-alert">JavaScript is required to connect this form to MangaHub.</p></noscript>
     </section>
   </main>
 
-  <footer class="auth-footer">Synthetic evidence only · Local learning environment</footer>
+  <footer class="auth-footer">Metadata and reading progress · No manga pages hosted</footer>
 </body>
 </html>
 {{end}}

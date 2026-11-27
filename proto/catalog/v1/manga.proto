@@ -1,0 +1,23 @@
+syntax = "proto3";
+package catalog.v1;
+option go_package = "github.com/Anh2603/CyberLab-Hub/gen/catalog/v1;catalogv1";
+
+service MangaCatalog {
+  rpc SearchManga(SearchMangaRequest) returns (SearchMangaResponse);
+  rpc GetManga(GetMangaRequest) returns (GetMangaResponse);
+  rpc UpdateChapters(UpdateChaptersRequest) returns (GetMangaResponse);
+}
+message Manga {
+  string id = 1;
+  string title = 2;
+  string author = 3;
+  repeated string genres = 4;
+  string status = 5;
+  int32 total_chapters = 6;
+  string description = 7;
+}
+message SearchMangaRequest { string query = 1; }
+message SearchMangaResponse { repeated Manga manga = 1; }
+message GetMangaRequest { string id = 1; }
+message GetMangaResponse { Manga manga = 1; }
+message UpdateChaptersRequest { string id = 1; int32 total_chapters = 2; }

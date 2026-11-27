@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Anh2603/CyberLab-Hub/internal/auth"
+	"github.com/Anh2603/CyberLab-Hub/internal/store"
 )
 
 const maxMessageBytes = 8 * 1024
@@ -71,6 +72,10 @@ func (s *Server) PublishProgress(userID int64, originSessionID, challengeID stri
 	s.hub.publish(userID, originSessionID, ProgressEvent{
 		Type: "progress", ChallengeID: challengeID, SolvedAt: solvedAt.UTC(),
 	})
+}
+
+func (s *Server) PublishMangaProgress(userID int64, origin string, entry store.LibraryEntry) {
+	s.hub.publish(userID, origin, map[string]any{"type": "progress_updated", "manga_id": entry.MangaID, "chapter": entry.CurrentChapter, "status": entry.Status, "version": entry.Version, "updated_at": entry.UpdatedAt})
 }
 
 func (s *Server) handleConnection(connection net.Conn) {
@@ -210,7 +215,7 @@ func (h *hub) remove(connectionClient *client) {
 	connectionClient.close()
 }
 
-func (h *hub) publish(userID int64, originSessionID string, event ProgressEvent) {
+func (h *hub) publish(userID int64, originSessionID string, event any) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for sessionID, client := range h.sessions[userID] {

@@ -17,6 +17,7 @@ import (
 )
 
 func TestRoomClientSendsReceivesAndCancels(t *testing.T) {
+	sentAt := time.Date(2026, 11, 27, 10, 0, 0, 0, time.UTC)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/ws/rooms/log-analysis" || r.Header.Get("Authorization") != "Bearer test-token" {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -34,7 +35,7 @@ func TestRoomClientSendsReceivesAndCancels(t *testing.T) {
 		if err := connection.ReadJSON(&input); err != nil {
 			return
 		}
-		_ = connection.WriteJSON(map[string]string{"username": "alice", "body": input.Body})
+		_ = connection.WriteJSON(map[string]any{"type": "message", "username": "alice", "body": input.Body, "sent_at": sentAt})
 		_, _, _ = connection.ReadMessage()
 	}))
 	defer server.Close()
@@ -53,7 +54,7 @@ func TestRoomClientSendsReceivesAndCancels(t *testing.T) {
 	if err := send("hello"); err != nil {
 		t.Fatal(err)
 	}
-	waitForEvent(t, events, "alice: hello")
+	waitForEvent(t, events, sentAt.Local().Format("02/01/2006 15:04:05")+" alice: hello")
 	cancel()
 	select {
 	case _, open := <-events:

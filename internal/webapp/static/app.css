@@ -147,6 +147,8 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 36px); line-height: 1.15; letter-spa
 .answer-card label, .admin-form label { display: block; font-weight: 600; }
 .answer-card input, .admin-form input, .admin-form select, .admin-form textarea { display: block; margin: 7px 0 15px; }
 .answer-card .primary-button { margin-top: 4px; }
+.reading-form label { display: grid; gap: 7px; }
+.reading-form input, .reading-form select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-lowest); color: var(--text); font: inherit; }
 .success-message, .error-message { margin-top: 16px; padding: 12px; border-left: 3px solid; }
 .success-message { color: var(--success); background: rgba(66,190,101,.1); }
 .error-message { color: #ffd7da; background: var(--error-surface); border-color: var(--error); }

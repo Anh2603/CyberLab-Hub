@@ -19,7 +19,7 @@ func TestPagesAndAssets(t *testing.T) {
 		contentType string
 		contains    string
 	}{
-		{path: "/login", contentType: "text/html", contains: "Log in to CyberLab Hub"},
+		{path: "/login", contentType: "text/html", contains: "Log in to MangaHub"},
 		{path: "/signup", contentType: "text/html", contains: "Create your account"},
 		{path: "/app", contentType: "text/html", contains: "Loading workspace"},
 		{path: "/assets/app.css", contentType: "text/css", contains: "--primary: #4589ff"},

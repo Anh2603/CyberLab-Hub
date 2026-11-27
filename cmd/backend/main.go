@@ -58,13 +58,13 @@ func main() {
 		os.Exit(1)
 	}
 	defer catalogConnection.Close()
-	catalogClient := catalogv1.NewCatalogServiceClient(catalogConnection)
+	catalogClient := catalogv1.NewMangaCatalogClient(catalogConnection)
 
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,
 		Handler: backend.NewRouter(backend.Dependencies{
-			Accounts: accounts, Tokens: tokens, Catalog: catalogClient,
-			Progress: accounts, Events: progressServer, Notifier: notificationServer,
+			Accounts: accounts, Tokens: tokens, Manga: catalogClient,
+			Library: accounts, MangaEvents: progressServer, ChapterAlerts: notificationServer,
 			Discussions: discussionHub, RPCTimeout: cfg.GRPCTimeout,
 		}),
 		ReadHeaderTimeout: cfg.ReadHeaderTimeout,

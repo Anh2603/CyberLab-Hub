@@ -31,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer catalogStore.Close()
-	if err := catalog.SeedDefaults(context.Background(), catalogStore); err != nil {
+	if err := catalog.SeedManga(context.Background(), catalogStore); err != nil {
 		logger.Error("catalog seed failed", "error", err)
 		os.Exit(1)
 	}
@@ -46,10 +46,10 @@ func main() {
 		grpc.MaxRecvMsgSize(1<<20),
 		grpc.MaxSendMsgSize(1<<20),
 	)
-	catalogv1.RegisterCatalogServiceServer(server, catalog.NewServer(catalogStore))
+	catalogv1.RegisterMangaCatalogServer(server, catalog.NewMangaServer(catalogStore))
 	healthServer := health.NewServer()
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
-	healthServer.SetServingStatus(catalog.ServiceName, grpc_health_v1.HealthCheckResponse_SERVING)
+	healthServer.SetServingStatus(catalog.MangaServiceName, grpc_health_v1.HealthCheckResponse_SERVING)
 	grpc_health_v1.RegisterHealthServer(server, healthServer)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -70,7 +70,7 @@ func main() {
 	}
 
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_NOT_SERVING)
-	healthServer.SetServingStatus(catalog.ServiceName, grpc_health_v1.HealthCheckResponse_NOT_SERVING)
+	healthServer.SetServingStatus(catalog.MangaServiceName, grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 	stopped := make(chan struct{})
 	go func() {
 		server.GracefulStop()

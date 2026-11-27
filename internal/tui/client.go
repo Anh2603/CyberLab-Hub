@@ -192,9 +192,17 @@ func (c *Client) RunProgressSync(ctx context.Context, events chan<- string, stat
 		var message struct {
 			Type        string `json:"type"`
 			ChallengeID string `json:"challenge_id"`
+			MangaID     string `json:"manga_id"`
+			Chapter     int    `json:"chapter"`
+			Version     int64  `json:"version"`
 		}
-		if json.Unmarshal(reader.Bytes(), &message) == nil && message.Type == "progress" {
-			nonBlocking(events, "Progress synchronized: "+message.ChallengeID)
+		if json.Unmarshal(reader.Bytes(), &message) == nil {
+			if message.Type == "progress" {
+				nonBlocking(events, "Progress synchronized: "+message.ChallengeID)
+			}
+			if message.Type == "progress_updated" {
+				nonBlocking(events, fmt.Sprintf("Reading progress: %s chapter %d (v%d)", message.MangaID, message.Chapter, message.Version))
+			}
 		}
 	}
 	if ctx.Err() == nil {
@@ -247,12 +255,15 @@ func (c *Client) RunNotifications(ctx context.Context, events chan<- string, sta
 		count, err := connection.Read(buffer)
 		if err == nil {
 			var message struct {
-				Type  string `json:"type"`
-				Title string `json:"title"`
-				Error string `json:"error"`
+				Type    string `json:"type"`
+				Title   string `json:"title"`
+				Error   string `json:"error"`
+				Chapter int    `json:"chapter"`
 			}
 			if json.Unmarshal(buffer[:count], &message) == nil {
 				switch message.Type {
+				case "new_chapter":
+					nonBlocking(events, fmt.Sprintf("New chapter: %s — chapter %d", message.Title, message.Chapter))
 				case "challenge_published":
 					nonBlocking(events, "New challenge: "+message.Title)
 				case "subscribed":
@@ -301,13 +312,17 @@ func (c *Client) JoinRoom(ctx context.Context, room string, events chan<- string
 		defer connection.Close()
 		for {
 			var message struct {
-				Username string `json:"username"`
-				Body     string `json:"body"`
+				Username string    `json:"username"`
+				Body     string    `json:"body"`
+				SentAt   time.Time `json:"sent_at"`
+				Type     string    `json:"type"`
 			}
 			if err := connection.ReadJSON(&message); err != nil {
 				return
 			}
-			nonBlocking(events, message.Username+": "+message.Body)
+			if message.Type == "message" {
+				nonBlocking(events, message.SentAt.Local().Format("02/01/2006 15:04:05")+" "+message.Username+": "+message.Body)
+			}
 		}
 	}()
 	send := func(body string) error {

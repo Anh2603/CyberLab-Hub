@@ -1,225 +1,106 @@
-# CyberLab Hub
+# MangaHub
 
-CyberLab Hub is a Go-based cybersecurity learning platform that lets learners discover hands-on challenges, submit answers, track progress, receive release notifications, and discuss topics in real time.
+Go/Gin + Go tview application for the IT096IIU MangaHub specification v3.0.
+Discover manga metadata, keep a private library, update reading progress, receive
+chapter-release notifications, and discuss titles. No manga pages are hosted.
 
-The project is designed to demonstrate five network protocols through connected product features:
+## Prerequisites
 
-- HTTP/JSON for accounts, challenge discovery, submissions, and progress.
-- TCP for private progress synchronization between sessions of the same learner.
-- UDP for best-effort new-challenge notifications.
-- WebSocket for live, room-based discussions.
-- gRPC and Protocol Buffers for communication between the backend and a separate Challenge Catalog Service.
+- Go 1.26+ with automatic toolchain downloads (`go.mod` selects Go 1.27.4).
+- Three terminals, minimum 110 columns × 35 rows for the TUI.
+- Dependencies: `go mod download`. No Redis, Docker, or external metadata API required.
 
-## Project status
+## Run
 
-Phases 1-8 are implemented. Phase 9 adds verification evidence, demo instructions, report preparation, and TUI fixes. Final submission still requires a manual terminal demo, the completed report PDF, and approval of the project domain substitution.
-
-> Academic scope: the supplied assignment specification names MangaHub. CyberLab Hub changes the product domain and therefore requires explicit instructor approval before submission. See the assignment-alignment document for the exact semantic differences.
-
-## Intended architecture
-
-The system will contain three independently runnable Go programs:
-
-```text
-Go tview TUI
-  |-- HTTP/JSON ----------> Gin Backend --------> Backend SQLite
-  |-- TCP progress sync --> Gin Backend
-  |-- UDP notifications --> Gin Backend
-  |-- WebSocket chat -----> Gin Backend
-                                  |
-                                  +-- gRPC --> Challenge Catalog Service
-                                                    |
-                                                    +--> Catalog SQLite
-```
-
-## Core roles
-
-- **Learner:** registers, signs in, browses challenges, submits answers, tracks progress, receives notifications, and joins discussion rooms.
-- **Administrator:** imports and reviews challenge content, publishes or archives challenges, and monitors basic service health.
-- **Operator:** configures and runs the backend and catalog processes, manages secrets, and backs up local databases.
-
-## Planned challenge categories
-
-- Log analysis
-- Network fundamentals
-- Digital forensics basics
-- Web security fundamentals
-
-All seed challenges and datasets will be local and intentionally created for learning. The project will not execute untrusted user code or deploy intentionally vulnerable public services.
-
-## Technology
-
-- Go 1.26 or later
-- Gin
-- tview
-- SQLite through `database/sql`
-- JWT and bcrypt
-- Gorilla WebSocket
-- grpc-go and Protocol Buffers
-- Go `net` package for TCP and UDP
-
-## Documentation
-
-- [Architecture](docs/ARCHITECTURE.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Demo guide](docs/DEMO.md)
-- [Verification record](docs/VERIFICATION.md)
-- [Assignment alignment](docs/ASSIGNMENT_ALIGNMENT.md)
-- [Technical report draft](docs/REPORT_DRAFT.md)
-- [References](docs/REFERENCES.md)
-
-## Run locally
-
-Requirements: Go 1.26 or later with automatic toolchain downloads enabled. The project selects Go 1.27.4 through `go.mod` to include the security fixes verified in Phase 9.
-
-`.env.example` documents the environment variables. The programs do not automatically load `.env` files. Set variables in PowerShell before starting the corresponding program. Local environment files are intentionally ignored by Git.
-
-Open three PowerShell terminals in the repository directory. In terminal 1:
+From the repository directory, terminal 1:
 
 ```powershell
 go run ./cmd/catalog
 ```
 
-In terminal 2, generate a local secret and start the backend. Keep the same secret across restarts if existing sessions should remain valid:
+Terminal 2:
 
 ```powershell
 $env:JWT_SECRET = [guid]::NewGuid().ToString("N")
 go run ./cmd/backend
 ```
 
-In terminal 3:
+Terminal 3 (repeat for additional sessions):
 
 ```powershell
 go run ./cmd/tui
 ```
 
-The backend health endpoint is available at `http://localhost:8080/api/health`. The same process serves the web interface at `http://localhost:8080/login`: learners can create an account or log in, browse and solve challenges, review progress, join discussion rooms, and check newly published challenges. Administrators can publish and archive challenges. The browser verifies the returned session against `/api/me`. The JWT is kept in browser session storage and is cleared when the tab session ends or the user signs out.
-
-Browser notifications list the current published catalog and mark newly appearing challenge IDs as unread when the catalog is checked again. Read state is kept per account in browser session storage, so it is not shared across devices or saved by the backend. The TUI remains the direct UDP subscriber for the five-protocol demonstration. Browser discussion rooms use the WebSocket subprotocol header to provide the JWT, since browser WebSocket APIs cannot set an Authorization header.
-
-### Web demo walkthrough
-
-1. Start the catalog and backend in separate terminals, then open `http://localhost:8080/login`. Sign up as a learner if you do not already have an account. Open **Challenges**, solve an exercise, and check **My Progress**.
-2. To create an administrator, stop the backend and set `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` in its terminal before starting it again. Use a username that no learner already uses. The administrator signs in through the same login page; public sign-up creates learner accounts only.
-3. Keep the learner session open in one browser window and sign in as the administrator in a separate browser profile or private window. Publish a challenge from **Challenge Management**. In the learner window, open **Notifications** and select **Check for new challenges**. The new challenge should appear as unread. Archive it as the administrator to remove it from the active learner catalog.
-4. Open two learner sessions in separate browser profiles or private windows. Join the same **Discussions** room and send a message to confirm it appears in the other session. Messages are live while both clients are connected; the app does not store chat history.
-
-Restart the backend after changing its environment variables or web source code. Restart the catalog after changing its source code or seed data. Existing learner progress is stored in the backend database; challenge content is stored in the catalog database.
-
-Run the checks with:
+Create reader accounts in the TUI. There are no preset passwords. For an
+administrator, set both variables in the backend terminal **before starting it**:
 
 ```powershell
-go test ./...
+$env:BOOTSTRAP_ADMIN_USERNAME = "operator"
+$env:BOOTSTRAP_ADMIN_PASSWORD = Read-Host "Choose a demo administrator password"
+```
+
+After the account is created, remove those two environment variables; the account
+remains in SQLite. Keep the same JWT secret across restarts to retain existing
+sessions; generating a new secret requires signing in again.
+
+## Ports and storage
+
+| Process | Default address | State |
+| --- | --- | --- |
+| Gin backend: HTTP + WebSocket | `127.0.0.1:8080` | `data/backend.db`: accounts and personal library |
+| Backend TCP progress hub | `127.0.0.1:9090` | Authenticated same-user sessions |
+| Backend UDP chapter alerts | `127.0.0.1:9091` | Expiring subscriptions |
+| Separate gRPC catalog | `127.0.0.1:9092` | `data/catalog.db`: manga metadata |
+
+`.env.example` lists options. Programs do not load `.env` automatically. Set
+variables in the relevant PowerShell session. Bindings default to loopback;
+gRPC is a trusted internal service without transport authentication.
+
+## Demo and controls
+
+Arrows/Enter select; Tab changes form controls; Esc returns to the menu.
+Manga Browser: F2 results, F3 search. Discussion: F2 message, F3 controls, F4 room.
+
+1. Register/login, search `Star`, select **Star Harbor**, and add it to **My Library**.
+2. Open a second TUI under the same account and keep **My Library** visible.
+   Change the chapter/status in the first. The second updates from a TCP event,
+   without periodic polling. A different account does not receive that event.
+3. Subscribe in **Notifications** in two TUIs. In an admin TUI choose **Release
+   chapter**, enter a new total greater than the catalog's current count, and
+   observe UDP alerts. Star Harbor starts at 12 chapters in an empty catalog.
+4. Join `general` in two TUIs and `mystery` in another; demonstrate room isolation.
+5. Stop catalog, search again, observe a bounded error; restart catalog. Restart
+   backend and verify the library persists.
+
+An optional browser interface is available at `http://localhost:8080/login`.
+The **required demo uses the Go TUI**; browser views do not replace TCP/UDP evidence.
+
+## Checks
+
+```powershell
+go test -count=1 ./...
 go vet ./...
+go test -race -count=1 -run TestManga -timeout 90s ./internal/tui
 go build ./cmd/backend ./cmd/catalog ./cmd/tui
 ```
 
-## Authentication API
+The MangaHub integration tests use real HTTP/TCP/UDP/WebSocket/gRPC listeners,
+temporary SQLite databases, and rendered tview simulation screens. See
+[assignment checklist](docs/MANGAHUB_ALIGNMENT.md) and
+[verification](docs/MANGAHUB_VERIFICATION.md).
 
-- `POST /api/auth/register` creates a learner account.
-- `POST /api/auth/login` returns a signed bearer token.
-- `GET /api/me` returns the authenticated identity.
-- `GET /api/admin/health` demonstrates administrator-only authorization.
+## Known limitations and reuse
 
-To create the first administrator, set `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD` together before starting the backend. The operation is idempotent: it creates the named administrator once and never replaces an existing learner. Remove both variables after the account has been created.
-
-## Challenge catalog gRPC API
-
-The catalog service implements `SearchChallenges`, `GetChallenge`, `VerifyAnswer`, `PublishChallenge`, and `ArchiveChallenge`. Expected answers remain in the catalog database and are never included in public Protocol Buffer messages. Three synthetic challenges are seeded only when the catalog is empty.
-
-The catalog listens on loopback by default because its publication methods are intended only for the trusted backend. Keep it on a private interface unless transport authentication is added.
-
-Protocol Buffer source is stored under `proto/`; generated Go stubs under `gen/` are committed for reproducible builds. To regenerate them without installing `protoc` globally:
-
-```powershell
-$env:GOBIN = "$PWD\.cache\bin"
-go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.2
-$env:PATH = "$env:GOBIN;$env:PATH"
-go run github.com/bufbuild/buf/cmd/buf@v1.75.0 generate
-```
-
-## Challenge HTTP API
-
-All routes below require a bearer token:
-
-- `GET /api/challenges` searches published challenges; optional query parameters are `query`, `category`, and `difficulty`.
-- `GET /api/challenges/:id` returns one published challenge.
-- `POST /api/challenges/:id/submissions` verifies `{"answer":"..."}` and records every attempt.
-- `GET /api/progress` returns only challenges solved by the authenticated learner.
-- `POST /api/admin/challenges` publishes a challenge and is administrator-only.
-- `DELETE /api/admin/challenges/:id` archives a challenge and is administrator-only.
-
-Each backend-to-catalog call has a bounded deadline. If the catalog is stopped, the backend returns a controlled `503` or `504` response instead of hanging. Request bodies and gRPC messages are size-limited.
-
-## TCP progress synchronization
-
-Connect to `BACKEND_TCP_ADDR` and send one newline-delimited authentication message within five seconds:
-
-```json
-{"type":"authenticate","token":"<JWT>","session_id":"<unique-client-session-id>"}
-```
-
-The server acknowledges with `{"type":"authenticated",...}`. After a correct HTTP submission commits to SQLite, other connected sessions for that learner receive a newline-delimited `progress` event. The submitting client should send its TCP session ID in the HTTP `X-Session-ID` header so the server can exclude that origin. Sessions from other users never receive the event. Messages are capped at 8 KiB, idle sessions expire, slow writers are disconnected, and `{"type":"ping"}` receives `{"type":"pong"}`.
-
-## UDP publication notifications
-
-Send an authenticated datagram to `BACKEND_UDP_ADDR`:
-
-```json
-{"type":"subscribe","token":"<JWT>","client_id":"<unique-client-id>"}
-```
-
-The server replies with a `subscribed` acknowledgement and an expiration time. A successful administrator publication then produces a best-effort `challenge_published` datagram containing public challenge metadata. Refresh the subscription before it expires, or send the same authenticated message with `"type":"unsubscribe"`. Invalid tokens and datagrams larger than 8 KiB are rejected; expired or unreachable receivers never block publication or crash the backend.
-
-All listeners bind to loopback by default. Environment variables can override the addresses for a controlled lab network, but the protocols are not configured for public-internet exposure.
-
-## WebSocket discussion rooms
-
-Connect to `ws://127.0.0.1:8080/api/ws/rooms/:room` with the normal `Authorization: Bearer <JWT>` header. Room names are chosen from the URL and validated by the server; clients cannot redirect a message into another room. Send text frames containing:
-
-```json
-{"body":"A short discussion message"}
-```
-
-Authenticated participants in that room receive a server-authored message containing the verified username, room, body, and timestamp. Other rooms are isolated. The server enforces message/read limits, ping/pong liveness, bounded write times, slow-client removal, safe origin checks, and disconnect cleanup.
-
-## Terminal UI
-
-Start the catalog and backend first, then run `go run ./cmd/tui`. The TUI provides:
-
-- learner registration and login;
-- challenge search, details, answer submission, and persisted progress;
-- live TCP progress events and UDP publication notifications;
-- authenticated WebSocket discussion rooms;
-- an administrator-only form to publish and archive challenges;
-- visible connection and error status without blocking the UI event loop.
-
-Each TUI process generates unique TCP and UDP client identifiers, so multiple terminals can run simultaneously. JWTs remain in memory and are never written to disk or logs.
-
-In the challenge browser, use F2 to focus the results, F3 to return to search, and Esc to return to the menu. On details, progress, discussion, and notifications screens, F2 focuses content and F3 focuses controls. Within forms, use Tab/Shift+Tab and Enter. The terminal should be at least 100 columns by 30 rows.
-
-The notifications screen has Subscribe and Unsubscribe controls. Keep My Progress open in a second terminal under the same account: a correct submission in the first terminal updates the second terminal automatically after the TCP event. Returning to the main menu closes the current discussion-room connection.
-
-Seed exercises include the synthetic log, headers, or bytes needed to solve them. Existing untouched placeholder descriptions are upgraded on catalog startup; customized descriptions, answer hashes, and archived state are preserved.
-
-To exercise the full terminal workflows against real HTTP, TCP, UDP, WebSocket and gRPC listeners, run:
-
-```powershell
-go test -count=1 -run TestTerminal -timeout 45s ./internal/tui
-```
-
-These tests render independent 100x30 simulated terminals, exercise form actions, check visible progress updates, exchange chat messages, subscribe/unsubscribe notifications, and publish/archive a challenge. They do not open desktop windows or alter your normal application databases.
-
-## Security principles
-
-- Passwords are hashed and never logged.
-- JWT secrets and local environment files are not committed.
-- Answer verification stays on the server side.
-- User identity is derived from verified authentication, never a client-supplied user ID.
-- Network calls use bounded timeouts and cancellation.
-- Private progress events are isolated by authenticated user.
-
-## License
-
-No license has been selected yet.
+- The 30 seeded titles are original fictional classroom metadata across six
+  genres, not a current commercial catalog. They are inserted only into an empty
+  manga table; restarts preserve chapter releases.
+- UDP is best-effort; subscriptions renew while active and expire on the server.
+- Chat has no persisted history. Reopen the TUI after a broken TCP connection;
+  reconnecting reloads authoritative progress from HTTP/SQLite.
+- Redis is optional and is not implemented.
+- The repository/module path retains `CyberLab-Hub` for Git/import compatibility.
+  Older CyberLab tables, handlers, and regression tests remain for migration
+  safety; the three production commands select MangaHub services and screens.
+  Old `docs/REPORT_DRAFT.md` and other CyberLab documents are historical drafts.
+- Final `REPORT.pdf` and the pair's contribution/ownership record remain a
+  separate submission step. Do not submit personal databases or secrets.

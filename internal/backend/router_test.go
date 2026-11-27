@@ -20,7 +20,7 @@ func TestHealth(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if body["service"] != "cyberlab-backend" || body["status"] != "ok" {
+	if body["service"] != "mangahub-backend" || body["status"] != "ok" {
 		t.Fatalf("body = %#v, want backend ok response", body)
 	}
 }

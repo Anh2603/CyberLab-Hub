@@ -20,7 +20,9 @@ Run `go test -count=1 -run TestManga -timeout 60s ./internal/tui`.
 | TUI notification | Incoming datagram visible in widget | `New chapter: Naruto` displayed |
 | TUI controls | Signup → add title → edit reading progress | Form actions saved reading/chapter 8 |
 | Chat | Sender and same room receive; other room receives none | Both general-room clients received; mystery-room client received none |
-| SQLite restart | Progress/version and released chapter remain | Reopened test databases retained chapter 701 and library version 3; reseeding did not overwrite |
+| SQLite reopen | Progress/version and released chapter remain | Reopened test databases retained chapter 701 and library version 3; reseeding did not overwrite |
+| Full process restart | Backend/catalog stop and restart; TUI recovers | Opt-in process test passed; saved chapter 10 survived backend restart, TUI reconnected and displayed chapter 11, catalog release 1200 survived its restart |
+| Busy TUI / burst | Last saved progress remains visible | 100 updates during a blocked render converged to chapter 100, version 101 without refresh |
 | Catalog stop | Bounded error rather than hanging | HTTP client failed within two-second assertion |
 
 These are automated observations on temporary databases and actual loopback
@@ -46,8 +48,22 @@ unsubscribe/expiry, room isolation, cleanup, and bounded socket operations.
 The old CyberLab-specific tests only preserve migration infrastructure; MangaHub
 feature evidence comes from the `TestManga*` tests above.
 
+## Reliability hardening on 2026-11-27
+
+The original TCP client failed the full-queue regression check; the corrected
+implementation passed the same check and cancellation check. See
+[symptom, cause, fix and retest](DEFECT_PROGRESS_QUEUE.md).
+Library reads now coalesce while the UI is busy, and TCP reconnect triggers
+event-driven reconciliation of saved state. The independent-process test is
+opt-in: set `MANGAHUB_PROCESS_TEST=1` and run `TestMangaProcessRestart`.
+
+The MangaCatalogService protobuf contract was corrected to use a dedicated
+UpdateChaptersResponse. `buf lint` and `buf format --diff --exit-code` are part
+of the release verification. This records the actual checked contract, not
+an assumed success based only on generated code compiling.
+
 ## Limitations to explain
 
-UDP has no delivery guarantee. Chat history is not persisted. TCP connections
-require reopening/signing in after a transport failure. Redis is not implemented.
+UDP has no delivery guarantee. Chat history is not persisted. TCP reconnect uses
+backoff; changing JWT secrets requires signing in again. Redis is not implemented.
 The web interface supplements rather than replaces the required Go tview demo.

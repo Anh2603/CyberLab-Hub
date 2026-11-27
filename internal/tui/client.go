@@ -135,6 +135,37 @@ func (c *Client) ArchiveChallenge(ctx context.Context, id string) error {
 }
 
 func (c *Client) RunProgressSync(ctx context.Context, events chan<- string, status chan<- string) {
+	c.runProgressSession(ctx, events, status, false)
+}
+
+// Reconnect only on transport failure. A successful handshake invalidates local
+// progress, covering updates missed while disconnected without periodic polling.
+func (c *Client) RunReadingSync(ctx context.Context, events chan<- string, status chan<- string) {
+	delay := 250 * time.Millisecond
+	for ctx.Err() == nil {
+		started := time.Now()
+		c.runProgressSession(ctx, events, status, true)
+		if ctx.Err() != nil {
+			return
+		}
+		nonBlocking(status, "TCP disconnected; reconnecting and restoring saved progress")
+		if time.Since(started) > 10*time.Second {
+			delay = 250 * time.Millisecond
+		}
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return
+		case <-timer.C:
+		}
+		if delay < 8*time.Second {
+			delay *= 2
+		}
+	}
+}
+
+func (c *Client) runProgressSession(ctx context.Context, events chan<- string, status chan<- string, resync bool) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	connection, err := (&net.Dialer{Timeout: 3 * time.Second}).DialContext(ctx, "tcp", c.tcpAddr)
@@ -174,6 +205,9 @@ func (c *Client) RunProgressSync(ctx context.Context, events chan<- string, stat
 	}
 	_ = connection.SetDeadline(time.Time{})
 	nonBlocking(status, "TCP progress sync connected")
+	if resync && !deliverProgress(ctx, events, "Reading progress: connection ready; reload saved library") {
+		return
+	}
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
@@ -198,14 +232,18 @@ func (c *Client) RunProgressSync(ctx context.Context, events chan<- string, stat
 		}
 		if json.Unmarshal(reader.Bytes(), &message) == nil {
 			if message.Type == "progress" {
-				nonBlocking(events, "Progress synchronized: "+message.ChallengeID)
+				if !deliverProgress(ctx, events, "Progress synchronized: "+message.ChallengeID) {
+					return
+				}
 			}
 			if message.Type == "progress_updated" {
-				nonBlocking(events, fmt.Sprintf("Reading progress: %s chapter %d (v%d)", message.MangaID, message.Chapter, message.Version))
+				if !deliverProgress(ctx, events, fmt.Sprintf("Reading progress: %s chapter %d (v%d)", message.MangaID, message.Chapter, message.Version)) {
+					return
+				}
 			}
 		}
 	}
-	if ctx.Err() == nil {
+	if ctx.Err() == nil && !resync {
 		nonBlocking(status, "TCP progress sync disconnected; sign in again to reconnect")
 	}
 }
@@ -404,5 +442,14 @@ func nonBlocking(channel chan<- string, value string) {
 	select {
 	case channel <- value:
 	default:
+	}
+}
+
+func deliverProgress(ctx context.Context, events chan<- string, value string) bool {
+	select {
+	case events <- value:
+		return true
+	case <-ctx.Done():
+		return false
 	}
 }

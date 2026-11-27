@@ -1,117 +1,24 @@
-# Development Roadmap
+# MangaHub remaining release work
 
-The roadmap is organized around working vertical slices. A phase is complete only when its relevant build and tests pass.
+## Implemented and verified
 
-## Current handoff - 2026-11-18
+- F01–F06, including real manga metadata, private libraries and versioned progress.
+- Required tview TUI and five network responsibilities; supplementary web.
+- Input validation, room/account isolation, persistent SQLite and catalog deadlines.
+- TCP event backpressure, bounded library refresh and automatic reconnect/resync.
+- Real backend/catalog process stop-restart test with visible TUI recovery.
+- Reproducible defect test, current architecture/demo documentation and code-only
+  packaging script.
 
-Phases 1-8 are implemented. Phase 9 automated checks and draft documentation are available: test/vet/build pass on Go 1.27.4, the vulnerability scan reports zero reachable findings, and the demo/report materials are under `docs/`. Remaining release tasks are manual terminal walkthrough, race verification on a supported host, instructor approval of the CyberLab domain, and completion of the report with real team contribution evidence. The project is a demo candidate, not yet a finalized academic submission.
+## Still requires the students
 
-## Phase 0 - Product and architecture
+- Review and merge the tested MangaHub PR into the chosen submission branch.
+- Rehearse the TUI demo on the actual presentation laptop; both students must
+  explain their work and answer the small adaptation/debug task.
+- Complete REPORT.pdf and truthful contribution/AI-use records separately.
+- Run the race detector on a supported Go/C toolchain if available. The current
+  Windows environment has no working gcc; no race result is claimed.
+- Supply the real group number and announced deadline, then add the final report
+  to the submission archive. The generated code-only ZIP is not a final submission.
 
-- Confirm learner, administrator, and operator workflows.
-- Freeze protocol responsibilities.
-- Define data ownership and security boundaries.
-- Record explicit out-of-scope features.
-
-**Exit:** architecture is reviewable and no protocol is included only as a standalone demo.
-
-## Phase 1 - Module and service foundations
-
-- Create the Go module and three commands: TUI, backend, and catalog.
-- Add environment-based configuration and validation.
-- Add graceful startup and shutdown.
-- Add health checks and structured logging without credentials.
-
-**Exit:** all three programs build and start with documented configuration.
-
-## Phase 2 - Storage and authentication
-
-- Create backend and catalog migrations.
-- Implement registration, login, bcrypt hashing, and JWT validation.
-- Add role-based authorization for administrator endpoints.
-- Seed an initial administrator through a safe local setup path.
-
-**Exit:** account persistence, wrong-password, duplicate-user, invalid-token, and authorization tests pass.
-
-## Phase 3 - Challenge catalog over gRPC
-
-- Define Protocol Buffer messages and generated Go stubs.
-- Implement search, details, answer verification, publish, and archive RPCs.
-- Seed synthetic challenges only when the catalog is empty.
-- Map validation and storage failures to appropriate gRPC status codes.
-
-**Exit:** the catalog runs independently and its RPC contract has automated tests.
-
-## Phase 4 - HTTP challenge workflow
-
-- Connect Gin to the catalog using bounded gRPC deadlines.
-- Implement challenge search, details, submission, and learner progress endpoints.
-- Keep answer verification material outside public responses.
-- Map stopped-catalog errors to controlled HTTP responses.
-
-**Exit:** login-to-solve works end to end and the catalog failure is bounded.
-
-## Phase 5 - TCP progress synchronization
-
-- Authenticate the first newline-delimited TCP message.
-- Support multiple sessions for one learner.
-- Publish progress only after the database transaction commits.
-- Exclude the originating session and all other users.
-- Clean up disconnected sessions.
-
-**Exit:** real receiver tests prove same-user delivery and cross-user isolation.
-
-## Phase 6 - UDP publication notifications
-
-- Implement authenticated subscribe and unsubscribe datagrams.
-- Track subscriber return addresses with expiration.
-- Notify subscribers only after successful catalog publication.
-- Treat delivery as best-effort.
-
-**Exit:** subscribed clients receive notifications, unsubscribed clients do not, and unreachable receivers do not crash the backend.
-
-## Phase 7 - WebSocket discussion rooms
-
-- Authenticate the upgrade.
-- Implement server-controlled room membership.
-- Add safe register, broadcast, and unregister behavior.
-- Bound message sizes and write times.
-
-**Exit:** same-room delivery, room isolation, and disconnect cleanup tests pass.
-
-## Phase 8 - Complete TUI
-
-- Implement keyboard-driven screens and visible status feedback.
-- Keep HTTP and network listeners off the UI event loop.
-- Route incoming events through `QueueUpdateDraw`.
-- Support multiple simultaneous TUI processes.
-
-**Exit:** all core workflows are usable without shell commands or manual refresh.
-
-## Phase 9 - Verification and documentation
-
-- Run `gofmt`, `go vet ./...`, `go test -count=1 ./...`, and `go test -race ./...` where supported.
-- Add persistence, cancellation, concurrent-client, and failure-injection tests.
-- Document setup, demo route, observed results, limitations, and contribution evidence.
-
-**Exit:** a fresh clone can reproduce the demo without secrets or prebuilt databases.
-
-## MVP boundaries
-
-Included:
-
-- Local synthetic challenges
-- One short text answer per challenge
-- Learner and administrator roles
-- Personal progress
-- Topic discussion rooms
-- Localhost-first deployment
-
-Deferred:
-
-- Running untrusted code
-- Automatically deployed vulnerable machines
-- File uploads from learners
-- Team competitions and dynamic scoring
-- Public internet hosting
-- Redis, message brokers, Docker, and cloud deployment
+Redis, chat history and hosted manga pages are not required core features.

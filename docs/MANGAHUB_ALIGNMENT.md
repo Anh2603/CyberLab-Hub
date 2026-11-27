@@ -18,6 +18,7 @@ commands now implement MangaHub F01–F06. Redis (F07) is optional and not imple
 | F05 chat | Gorilla Hub, room-bound connection identity, one writer, cleanup | MangaHub two-reader room test; existing hub tests |
 | F06 boundary | Committed `manga.proto`, generated stubs; catalog SQLite only in catalog process | Real gRPC listener; timeout/status mapping |
 | TUI safety | HTTP work off event loop; incoming network events through QueueUpdateDraw | Simulated terminal tests; race detector where supported |
+| Progress recovery | Backpressure instead of dropped TCP events; reconnect and authoritative resync | Full-queue regression, 100-update rendered TUI test and real process-restart test |
 | Persistence | Separate accounts/library and manga databases; only seed an empty catalog | Reopen backend/catalog; chapter and version retained |
 | Report and defense | Required 4–5 page English technical PDF; both students explain/demo | Pending final report and student defense |
 

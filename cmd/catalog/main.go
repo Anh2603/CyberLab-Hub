@@ -46,7 +46,7 @@ func main() {
 		grpc.MaxRecvMsgSize(1<<20),
 		grpc.MaxSendMsgSize(1<<20),
 	)
-	catalogv1.RegisterMangaCatalogServer(server, catalog.NewMangaServer(catalogStore))
+	catalogv1.RegisterMangaCatalogServiceServer(server, catalog.NewMangaServer(catalogStore))
 	healthServer := health.NewServer()
 	healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
 	healthServer.SetServingStatus(catalog.MangaServiceName, grpc_health_v1.HealthCheckResponse_SERVING)

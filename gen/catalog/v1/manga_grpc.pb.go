@@ -19,166 +19,166 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	MangaCatalog_SearchManga_FullMethodName    = "/catalog.v1.MangaCatalog/SearchManga"
-	MangaCatalog_GetManga_FullMethodName       = "/catalog.v1.MangaCatalog/GetManga"
-	MangaCatalog_UpdateChapters_FullMethodName = "/catalog.v1.MangaCatalog/UpdateChapters"
+	MangaCatalogService_SearchManga_FullMethodName    = "/catalog.v1.MangaCatalogService/SearchManga"
+	MangaCatalogService_GetManga_FullMethodName       = "/catalog.v1.MangaCatalogService/GetManga"
+	MangaCatalogService_UpdateChapters_FullMethodName = "/catalog.v1.MangaCatalogService/UpdateChapters"
 )
 
-// MangaCatalogClient is the client API for MangaCatalog service.
+// MangaCatalogServiceClient is the client API for MangaCatalogService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type MangaCatalogClient interface {
+type MangaCatalogServiceClient interface {
 	SearchManga(ctx context.Context, in *SearchMangaRequest, opts ...grpc.CallOption) (*SearchMangaResponse, error)
 	GetManga(ctx context.Context, in *GetMangaRequest, opts ...grpc.CallOption) (*GetMangaResponse, error)
-	UpdateChapters(ctx context.Context, in *UpdateChaptersRequest, opts ...grpc.CallOption) (*GetMangaResponse, error)
+	UpdateChapters(ctx context.Context, in *UpdateChaptersRequest, opts ...grpc.CallOption) (*UpdateChaptersResponse, error)
 }
 
-type mangaCatalogClient struct {
+type mangaCatalogServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewMangaCatalogClient(cc grpc.ClientConnInterface) MangaCatalogClient {
-	return &mangaCatalogClient{cc}
+func NewMangaCatalogServiceClient(cc grpc.ClientConnInterface) MangaCatalogServiceClient {
+	return &mangaCatalogServiceClient{cc}
 }
 
-func (c *mangaCatalogClient) SearchManga(ctx context.Context, in *SearchMangaRequest, opts ...grpc.CallOption) (*SearchMangaResponse, error) {
+func (c *mangaCatalogServiceClient) SearchManga(ctx context.Context, in *SearchMangaRequest, opts ...grpc.CallOption) (*SearchMangaResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SearchMangaResponse)
-	err := c.cc.Invoke(ctx, MangaCatalog_SearchManga_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, MangaCatalogService_SearchManga_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *mangaCatalogClient) GetManga(ctx context.Context, in *GetMangaRequest, opts ...grpc.CallOption) (*GetMangaResponse, error) {
+func (c *mangaCatalogServiceClient) GetManga(ctx context.Context, in *GetMangaRequest, opts ...grpc.CallOption) (*GetMangaResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetMangaResponse)
-	err := c.cc.Invoke(ctx, MangaCatalog_GetManga_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, MangaCatalogService_GetManga_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *mangaCatalogClient) UpdateChapters(ctx context.Context, in *UpdateChaptersRequest, opts ...grpc.CallOption) (*GetMangaResponse, error) {
+func (c *mangaCatalogServiceClient) UpdateChapters(ctx context.Context, in *UpdateChaptersRequest, opts ...grpc.CallOption) (*UpdateChaptersResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetMangaResponse)
-	err := c.cc.Invoke(ctx, MangaCatalog_UpdateChapters_FullMethodName, in, out, cOpts...)
+	out := new(UpdateChaptersResponse)
+	err := c.cc.Invoke(ctx, MangaCatalogService_UpdateChapters_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// MangaCatalogServer is the server API for MangaCatalog service.
-// All implementations must embed UnimplementedMangaCatalogServer
+// MangaCatalogServiceServer is the server API for MangaCatalogService service.
+// All implementations must embed UnimplementedMangaCatalogServiceServer
 // for forward compatibility
-type MangaCatalogServer interface {
+type MangaCatalogServiceServer interface {
 	SearchManga(context.Context, *SearchMangaRequest) (*SearchMangaResponse, error)
 	GetManga(context.Context, *GetMangaRequest) (*GetMangaResponse, error)
-	UpdateChapters(context.Context, *UpdateChaptersRequest) (*GetMangaResponse, error)
-	mustEmbedUnimplementedMangaCatalogServer()
+	UpdateChapters(context.Context, *UpdateChaptersRequest) (*UpdateChaptersResponse, error)
+	mustEmbedUnimplementedMangaCatalogServiceServer()
 }
 
-// UnimplementedMangaCatalogServer must be embedded to have forward compatible implementations.
-type UnimplementedMangaCatalogServer struct {
+// UnimplementedMangaCatalogServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedMangaCatalogServiceServer struct {
 }
 
-func (UnimplementedMangaCatalogServer) SearchManga(context.Context, *SearchMangaRequest) (*SearchMangaResponse, error) {
+func (UnimplementedMangaCatalogServiceServer) SearchManga(context.Context, *SearchMangaRequest) (*SearchMangaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchManga not implemented")
 }
-func (UnimplementedMangaCatalogServer) GetManga(context.Context, *GetMangaRequest) (*GetMangaResponse, error) {
+func (UnimplementedMangaCatalogServiceServer) GetManga(context.Context, *GetMangaRequest) (*GetMangaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetManga not implemented")
 }
-func (UnimplementedMangaCatalogServer) UpdateChapters(context.Context, *UpdateChaptersRequest) (*GetMangaResponse, error) {
+func (UnimplementedMangaCatalogServiceServer) UpdateChapters(context.Context, *UpdateChaptersRequest) (*UpdateChaptersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateChapters not implemented")
 }
-func (UnimplementedMangaCatalogServer) mustEmbedUnimplementedMangaCatalogServer() {}
+func (UnimplementedMangaCatalogServiceServer) mustEmbedUnimplementedMangaCatalogServiceServer() {}
 
-// UnsafeMangaCatalogServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to MangaCatalogServer will
+// UnsafeMangaCatalogServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to MangaCatalogServiceServer will
 // result in compilation errors.
-type UnsafeMangaCatalogServer interface {
-	mustEmbedUnimplementedMangaCatalogServer()
+type UnsafeMangaCatalogServiceServer interface {
+	mustEmbedUnimplementedMangaCatalogServiceServer()
 }
 
-func RegisterMangaCatalogServer(s grpc.ServiceRegistrar, srv MangaCatalogServer) {
-	s.RegisterService(&MangaCatalog_ServiceDesc, srv)
+func RegisterMangaCatalogServiceServer(s grpc.ServiceRegistrar, srv MangaCatalogServiceServer) {
+	s.RegisterService(&MangaCatalogService_ServiceDesc, srv)
 }
 
-func _MangaCatalog_SearchManga_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _MangaCatalogService_SearchManga_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SearchMangaRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MangaCatalogServer).SearchManga(ctx, in)
+		return srv.(MangaCatalogServiceServer).SearchManga(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: MangaCatalog_SearchManga_FullMethodName,
+		FullMethod: MangaCatalogService_SearchManga_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MangaCatalogServer).SearchManga(ctx, req.(*SearchMangaRequest))
+		return srv.(MangaCatalogServiceServer).SearchManga(ctx, req.(*SearchMangaRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MangaCatalog_GetManga_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _MangaCatalogService_GetManga_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetMangaRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MangaCatalogServer).GetManga(ctx, in)
+		return srv.(MangaCatalogServiceServer).GetManga(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: MangaCatalog_GetManga_FullMethodName,
+		FullMethod: MangaCatalogService_GetManga_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MangaCatalogServer).GetManga(ctx, req.(*GetMangaRequest))
+		return srv.(MangaCatalogServiceServer).GetManga(ctx, req.(*GetMangaRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MangaCatalog_UpdateChapters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _MangaCatalogService_UpdateChapters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateChaptersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MangaCatalogServer).UpdateChapters(ctx, in)
+		return srv.(MangaCatalogServiceServer).UpdateChapters(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: MangaCatalog_UpdateChapters_FullMethodName,
+		FullMethod: MangaCatalogService_UpdateChapters_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MangaCatalogServer).UpdateChapters(ctx, req.(*UpdateChaptersRequest))
+		return srv.(MangaCatalogServiceServer).UpdateChapters(ctx, req.(*UpdateChaptersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// MangaCatalog_ServiceDesc is the grpc.ServiceDesc for MangaCatalog service.
+// MangaCatalogService_ServiceDesc is the grpc.ServiceDesc for MangaCatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var MangaCatalog_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "catalog.v1.MangaCatalog",
-	HandlerType: (*MangaCatalogServer)(nil),
+var MangaCatalogService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "catalog.v1.MangaCatalogService",
+	HandlerType: (*MangaCatalogServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "SearchManga",
-			Handler:    _MangaCatalog_SearchManga_Handler,
+			Handler:    _MangaCatalogService_SearchManga_Handler,
 		},
 		{
 			MethodName: "GetManga",
-			Handler:    _MangaCatalog_GetManga_Handler,
+			Handler:    _MangaCatalogService_GetManga_Handler,
 		},
 		{
 			MethodName: "UpdateChapters",
-			Handler:    _MangaCatalog_UpdateChapters_Handler,
+			Handler:    _MangaCatalogService_UpdateChapters_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -24,6 +24,8 @@ type MangaUI struct {
 	statuses           chan string
 	library            *tview.List
 	libraryVisible     bool
+	libraryLoading     bool
+	libraryDirty       bool
 	notificationCancel context.CancelFunc
 	roomCancel         context.CancelFunc
 	busy               bool
@@ -133,7 +135,7 @@ func (u *MangaUI) auth(register bool) tview.Primitive {
 					return
 				}
 				u.main()
-				go u.client.RunProgressSync(u.ctx, u.events, u.statuses)
+				go u.client.RunReadingSync(u.ctx, u.events, u.statuses)
 			})
 		}()
 	}
@@ -208,28 +210,54 @@ func (u *MangaUI) details(id string) {
 	})
 }
 func (u *MangaUI) libraryScreen() {
+	u.libraryLoading = false
+	u.libraryDirty = false
 	u.library = tview.NewList().ShowSecondaryText(true)
 	u.library.SetBorder(true).SetTitle(" My Library — Enter to update, Esc menu ")
 	u.show("library", u.wrap(u.library))
 	u.loadLibrary()
 }
 func (u *MangaUI) loadLibrary() {
+	if !u.libraryVisible {
+		return
+	}
+	if u.libraryLoading {
+		u.libraryDirty = true
+		return
+	}
+	u.libraryLoading = true
+	u.libraryDirty = false
 	list := u.library
-	var entries []store.LibraryEntry
-	u.task(func() error { var err error; entries, err = u.client.Library(u.ctx); return err }, func() {
-		if !u.libraryVisible || u.library != list {
-			return
-		}
-		list.Clear()
-		for _, e := range entries {
-			e := e
-			list.AddItem(e.MangaID, fmt.Sprintf("%s | chapter %d | version %d", e.Status, e.CurrentChapter, e.Version), 0, func() { u.editProgress(e) })
-		}
-		if len(entries) == 0 {
-			list.AddItem("Your library is empty", "Add manga from Manga Browser", 0, nil)
-		}
-		u.status.SetText("Library loaded. TCP updates appear without refresh.")
-	})
+	revision := u.revision
+	go func() {
+		entries, err := u.client.Library(u.ctx)
+		u.app.QueueUpdateDraw(func() {
+			if !u.libraryVisible || u.library != list {
+				return
+			}
+			if u.revision != revision {
+				return
+			}
+			u.libraryLoading = false
+			if u.libraryDirty {
+				u.loadLibrary()
+				return
+			}
+			if err != nil {
+				u.status.SetText("Library refresh failed: " + err.Error())
+				return
+			}
+			list.Clear()
+			for _, e := range entries {
+				e := e
+				list.AddItem(e.MangaID, fmt.Sprintf("%s | chapter %d | version %d", e.Status, e.CurrentChapter, e.Version), 0, func() { u.editProgress(e) })
+			}
+			if len(entries) == 0 {
+				list.AddItem("Your library is empty", "Add manga from Manga Browser", 0, nil)
+			}
+			u.status.SetText("Library loaded. TCP updates appear without refresh.")
+		})
+	}()
 }
 func (u *MangaUI) editProgress(entry store.LibraryEntry) {
 	var m store.Manga

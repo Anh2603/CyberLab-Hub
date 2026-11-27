@@ -15,12 +15,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const MangaServiceName = "catalog.v1.MangaCatalog"
+const MangaServiceName = "catalog.v1.MangaCatalogService"
 
 var mangaIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,63}$`)
 
 type MangaServer struct {
-	pb.UnimplementedMangaCatalogServer
+	pb.UnimplementedMangaCatalogServiceServer
 	catalog *store.Catalog
 }
 
@@ -52,7 +52,7 @@ func (s *MangaServer) GetManga(ctx context.Context, r *pb.GetMangaRequest) (*pb.
 	}
 	return &pb.GetMangaResponse{Manga: mangaProto(m)}, nil
 }
-func (s *MangaServer) UpdateChapters(ctx context.Context, r *pb.UpdateChaptersRequest) (*pb.GetMangaResponse, error) {
+func (s *MangaServer) UpdateChapters(ctx context.Context, r *pb.UpdateChaptersRequest) (*pb.UpdateChaptersResponse, error) {
 	if !mangaIDPattern.MatchString(r.GetId()) || r.GetTotalChapters() < 1 || r.GetTotalChapters() > 1000000 {
 		return nil, status.Error(codes.InvalidArgument, "invalid manga id or chapter count")
 	}
@@ -60,7 +60,7 @@ func (s *MangaServer) UpdateChapters(ctx context.Context, r *pb.UpdateChaptersRe
 	if err != nil {
 		return nil, mangaError(err)
 	}
-	return &pb.GetMangaResponse{Manga: mangaProto(m)}, nil
+	return &pb.UpdateChaptersResponse{Manga: mangaProto(m)}, nil
 }
 func mangaError(err error) error {
 	if errors.Is(err, store.ErrMangaNotFound) {

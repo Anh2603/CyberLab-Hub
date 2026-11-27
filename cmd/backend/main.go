@@ -58,7 +58,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer catalogConnection.Close()
-	catalogClient := catalogv1.NewMangaCatalogClient(catalogConnection)
+	catalogClient := catalogv1.NewMangaCatalogServiceClient(catalogConnection)
 
 	server := &http.Server{
 		Addr: cfg.HTTPAddr,

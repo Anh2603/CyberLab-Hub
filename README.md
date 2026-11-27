@@ -81,14 +81,31 @@ The **required demo uses the Go TUI**; browser views do not replace TCP/UDP evid
 ```powershell
 go test -count=1 ./...
 go vet ./...
-go test -race -count=1 -run TestManga -timeout 90s ./internal/tui
 go build ./cmd/backend ./cmd/catalog ./cmd/tui
+./scripts/verify-demo.ps1 -ProcessRestart
 ```
 
 The MangaHub integration tests use real HTTP/TCP/UDP/WebSocket/gRPC listeners,
 temporary SQLite databases, and rendered tview simulation screens. See
 [assignment checklist](docs/MANGAHUB_ALIGNMENT.md) and
 [verification](docs/MANGAHUB_VERIFICATION.md).
+
+The optional race-detector command is
+`go test -race -count=1 -run TestManga -timeout 90s ./internal/tui`.
+It needs a supported C toolchain; this Windows host currently lacks gcc.
+Protobuf validation: `go run github.com/bufbuild/buf/cmd/buf@v1.75.0 lint`.
+
+## Source package
+
+```powershell
+./scripts/package-source.ps1
+```
+
+This creates `dist/GroupXX_MangaHub_CodeOnly.zip` with source, stubs, tests,
+metadata, docs and sample config. It excludes report files, personal databases,
+secrets, Git state and caches. Pass `-Group 26` only if 26 is your actual project
+group. Add the final report separately before creating the final submission.
+The detailed TUI demonstration route is in [DEMO.md](docs/DEMO.md).
 
 ## Known limitations and reuse
 
@@ -101,12 +118,14 @@ temporary SQLite databases, and rendered tview simulation screens. See
   retains existing titles/releases and hides known fictional seeds from browsing;
   old library entries remain usable. Repeating it is safe.
 - UDP is best-effort; subscriptions renew while active and expire on the server.
-- Chat has no persisted history. Reopen the TUI after a broken TCP connection;
-  reconnecting reloads authoritative progress from HTTP/SQLite.
+- Chat has no persisted history. The MangaHub TUI reconnects broken TCP progress
+  sessions with backoff and reloads saved state on successful authentication.
+  Keep the same JWT secret over backend restarts; a new secret requires login.
 - Redis is optional and is not implemented.
 - The repository/module path retains `CyberLab-Hub` for Git/import compatibility.
   Older CyberLab tables, handlers, and regression tests remain for migration
   safety; the three production commands select MangaHub services and screens.
-  Old `docs/REPORT_DRAFT.md` and other CyberLab documents are historical drafts.
+  `docs/REPORT_DRAFT.md` remains an untouched historical draft; current architecture,
+  demo, alignment and verification guides describe MangaHub.
 - Final `REPORT.pdf` and the pair's contribution/ownership record remain a
   separate submission step. Do not submit personal databases or secrets.

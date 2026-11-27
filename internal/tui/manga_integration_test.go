@@ -66,7 +66,7 @@ func startMangaBackend(t *testing.T) *mangaHarness {
 	}
 	gl := listen()
 	h.catalog = grpc.NewServer()
-	pb.RegisterMangaCatalogServer(h.catalog, catalog.NewMangaServer(h.content))
+	pb.RegisterMangaCatalogServiceServer(h.catalog, catalog.NewMangaServer(h.content))
 	go h.catalog.Serve(gl)
 	t.Cleanup(h.catalog.Stop)
 	gc, err := grpc.NewClient(gl.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -85,7 +85,7 @@ func startMangaBackend(t *testing.T) *mangaHarness {
 	go func() { td <- tcp.Serve(ctx, tl) }()
 	go func() { ud <- udp.Serve(ctx, ul) }()
 	t.Cleanup(func() { cancel(); <-td; <-ud })
-	server := httptest.NewServer(backend.NewRouter(backend.Dependencies{Accounts: h.accounts, Tokens: tokens, Manga: pb.NewMangaCatalogClient(gc), Library: h.accounts, MangaEvents: tcp, ChapterAlerts: udp, Discussions: realtime.NewHub(), RPCTimeout: 300 * time.Millisecond}))
+	server := httptest.NewServer(backend.NewRouter(backend.Dependencies{Accounts: h.accounts, Tokens: tokens, Manga: pb.NewMangaCatalogServiceClient(gc), Library: h.accounts, MangaEvents: tcp, ChapterAlerts: udp, Discussions: realtime.NewHub(), RPCTimeout: 300 * time.Millisecond}))
 	t.Cleanup(server.Close)
 	h.url, h.tcp, h.udp = server.URL, tl.Addr().String(), ul.LocalAddr().String()
 	return h
@@ -510,5 +510,42 @@ func TestMangaTerminalSignupAddAndUpdateControls(t *testing.T) {
 		}
 		_, s := term.ui.library.GetItemText(0)
 		return strings.Contains(s, "chapter 8") && strings.Contains(s, "reading")
+	})
+}
+
+func TestMangaTerminalBurstConvergesAfterBusyUI(t *testing.T) {
+	h := startMangaBackend(t)
+	a := h.client(t, "burst-reader", true)
+	b := h.client(t, "burst-reader", false)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := a.AddManga(ctx, "naruto"); err != nil {
+		t.Fatal(err)
+	}
+	term := startMangaTerminal(t, b)
+	term.do(term.ui.main)
+	term.do(term.ui.libraryScreen)
+	term.wait(func() bool { return term.ui.library.GetItemCount() == 1 })
+	states := make(chan string, 16)
+	go b.RunReadingSync(ctx, term.ui.events, states)
+	waitForEvent(t, states, "TCP progress sync connected")
+	blocked, release := make(chan struct{}), make(chan struct{})
+	var once sync.Once
+	unblock := func() { once.Do(func() { close(release) }) }
+	defer unblock()
+	go term.ui.app.QueueUpdateDraw(func() { close(blocked); <-release })
+	<-blocked
+	for chapter := 1; chapter <= 100; chapter++ {
+		if _, err := a.UpdateReading(ctx, "naruto", "reading", chapter); err != nil {
+			t.Fatal(err)
+		}
+	}
+	unblock()
+	term.wait(func() bool {
+		if term.ui.library.GetItemCount() != 1 {
+			return false
+		}
+		_, s := term.ui.library.GetItemText(0)
+		return strings.Contains(s, "chapter 100 | version 101")
 	})
 }

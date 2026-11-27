@@ -19,7 +19,7 @@ import (
 type MangaClient interface {
 	SearchManga(context.Context, *pb.SearchMangaRequest, ...grpc.CallOption) (*pb.SearchMangaResponse, error)
 	GetManga(context.Context, *pb.GetMangaRequest, ...grpc.CallOption) (*pb.GetMangaResponse, error)
-	UpdateChapters(context.Context, *pb.UpdateChaptersRequest, ...grpc.CallOption) (*pb.GetMangaResponse, error)
+	UpdateChapters(context.Context, *pb.UpdateChaptersRequest, ...grpc.CallOption) (*pb.UpdateChaptersResponse, error)
 }
 type LibraryStore interface {
 	AddLibrary(context.Context, int64, string) (store.LibraryEntry, error)

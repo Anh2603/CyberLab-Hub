@@ -77,6 +77,22 @@ with its HTTP response and local UDP event. Concurrent requests overtaken by a
 higher chapter are rejected; they must not emit a release alert. UDP arrival
 order and guaranteed delivery outside this local test are not promised.
 
+## UDP subscription recovery
+
+The TUI releases its active subscription state when the UDP worker exits with an
+initialization, receive, or server-rejection error. The status keeps the failure
+reason and invites a manual Subscribe retry. Each subscription has a generation
+number: queued alerts, acknowledgements, and completion from an old subscription
+cannot overwrite or stop a newer one. Widget/state updates use the tview loop.
+
+The three `TestMangaUDP*` recovery cases passed 20 runs each: initialization
+failure followed by a successful retry and visible chapter alert; immediate
+unsubscribe/resubscribe with stale completion/acknowledgement rejection; and a
+server-rejected token followed by a successful authenticated retry. Invalid target
+and token changes are controlled test inputs, not a claim of live configuration
+reload in the application. UDP remains best-effort; no replay or automatic
+reconnection guarantee is added.
+
 ## Chat checks and remaining limitations
 
 Chat/UI hardening checks: `node --test scripts/test-web.cjs` executes the shipped

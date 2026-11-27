@@ -248,16 +248,16 @@ func (c *Client) runProgressSession(ctx context.Context, events chan<- string, s
 	}
 }
 
-func (c *Client) RunNotifications(ctx context.Context, events chan<- string, status chan<- string) {
+func (c *Client) RunNotifications(ctx context.Context, events chan<- string, status chan<- string) error {
 	server, err := net.ResolveUDPAddr("udp", c.udpAddr)
 	if err != nil {
 		nonBlocking(status, "UDP address invalid")
-		return
+		return fmt.Errorf("UDP address invalid: %w", err)
 	}
 	connection, err := net.DialUDP("udp", nil, server)
 	if err != nil {
 		nonBlocking(status, "UDP unavailable: "+err.Error())
-		return
+		return fmt.Errorf("UDP unavailable: %w", err)
 	}
 	defer connection.Close()
 	token, _ := c.credentials()
@@ -308,14 +308,18 @@ func (c *Client) RunNotifications(ctx context.Context, events chan<- string, sta
 					nonBlocking(status, "UDP notifications subscribed")
 				case "error":
 					nonBlocking(status, "UDP: "+message.Error)
+					return errors.New("UDP: " + message.Error)
 				}
 			}
 		} else if networkError, ok := err.(net.Error); !ok || !networkError.Timeout() {
-			return
+			if ctx.Err() != nil {
+				return nil
+			}
+			return fmt.Errorf("UDP receive failed: %w", err)
 		}
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		default:
 		}
 		if time.Now().After(nextRefresh) {

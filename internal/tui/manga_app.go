@@ -13,28 +13,31 @@ import (
 
 // Network goroutines dispatch widget mutations through tview's event loop.
 type MangaUI struct {
-	app                *tview.Application
-	pages              *tview.Pages
-	client             *Client
-	ctx                context.Context
-	cancel             context.CancelFunc
-	status             *tview.TextView
-	alerts             *tview.TextView
-	events             chan string
-	statuses           chan string
-	library            *tview.List
-	libraryVisible     bool
-	libraryLoading     bool
-	libraryDirty       bool
-	notificationCancel context.CancelFunc
-	roomCancel         context.CancelFunc
-	busy               bool
-	revision           uint64
+	app                    *tview.Application
+	pages                  *tview.Pages
+	client                 *Client
+	ctx                    context.Context
+	cancel                 context.CancelFunc
+	status                 *tview.TextView
+	alerts                 *tview.TextView
+	events                 chan string
+	statuses               chan string
+	library                *tview.List
+	libraryVisible         bool
+	libraryLoading         bool
+	libraryDirty           bool
+	notificationCancel     context.CancelFunc
+	notificationGeneration uint64
+	notificationUpdates    chan notificationNotice
+	roomCancel             context.CancelFunc
+	busy                   bool
+	revision               uint64
 }
 
 func NewMangaUI(client *Client) *MangaUI {
 	ctx, cancel := context.WithCancel(context.Background())
 	u := &MangaUI{app: tview.NewApplication(), pages: tview.NewPages(), client: client, ctx: ctx, cancel: cancel, status: tview.NewTextView(), alerts: tview.NewTextView().SetScrollable(true), events: make(chan string, 64), statuses: make(chan string, 32)}
+	u.notificationUpdates = make(chan notificationNotice, 64)
 	u.status.SetBorder(true).SetTitle(" Connection / action status ")
 	u.alerts.SetBorder(true).SetTitle(" UDP chapter notifications ")
 	u.pages.AddPage("login", u.auth(false), true, true)
@@ -56,6 +59,8 @@ func (u *MangaUI) Run() error {
 				})
 			case state := <-u.statuses:
 				u.app.QueueUpdateDraw(func() { u.status.SetText(state) })
+			case update := <-u.notificationUpdates:
+				u.app.QueueUpdateDraw(func() { u.applyNotificationNotice(update) })
 			case <-u.ctx.Done():
 				return
 			}
@@ -312,19 +317,7 @@ func (u *MangaUI) editProgress(entry store.LibraryEntry) {
 	})
 }
 func (u *MangaUI) notificationScreen() {
-	form := tview.NewForm().AddButton("Subscribe", func() {
-		if u.notificationCancel != nil {
-			return
-		}
-		ctx, cancel := context.WithCancel(u.ctx)
-		u.notificationCancel = cancel
-		go u.client.RunNotifications(ctx, u.events, u.statuses)
-	}).AddButton("Unsubscribe", func() {
-		if u.notificationCancel != nil {
-			u.notificationCancel()
-			u.notificationCancel = nil
-		}
-	}).AddButton("Back", u.main)
+	form := tview.NewForm().AddButton("Subscribe", u.subscribeNotifications).AddButton("Unsubscribe", u.unsubscribeNotifications).AddButton("Back", u.main)
 	u.show("notifications", u.wrap(tview.NewFlex().SetDirection(tview.FlexRow).AddItem(u.alerts, 0, 1, false).AddItem(form, 5, 0, true)))
 	u.status.SetText("UDP is best-effort. Subscription renews while this TUI is open.")
 }

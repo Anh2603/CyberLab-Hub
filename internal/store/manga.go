@@ -128,18 +128,16 @@ func (s *Catalog) SearchManga(ctx context.Context, q string) ([]Manga, error) {
 	return result, rows.Err()
 }
 func (s *Catalog) UpdateChapters(ctx context.Context, id string, total int) (Manga, error) {
-	r, err := s.db.ExecContext(ctx, "UPDATE manga SET total_chapters=? WHERE id=? AND total_chapters<?", total, id, total)
-	if err != nil {
-		return Manga{}, err
-	}
-	n, _ := r.RowsAffected()
-	if n == 0 {
+	// Capture this release's metadata in the same statement as the write. A
+	// separate SELECT can observe a later concurrent release and mislabel alerts.
+	m, err := scanManga(s.db.QueryRowContext(ctx, `UPDATE manga SET total_chapters=? WHERE id=? AND total_chapters<? RETURNING id,title,author,genres,status,total_chapters,description`, total, id, total))
+	if errors.Is(err, ErrMangaNotFound) {
 		if _, err := s.GetManga(ctx, id); err != nil {
 			return Manga{}, err
 		}
 		return Manga{}, ErrInvalidChapters
 	}
-	return s.GetManga(ctx, id)
+	return m, err
 }
 func (s *Backend) AddLibrary(ctx context.Context, userID int64, id string) (LibraryEntry, error) {
 	_, err := s.db.ExecContext(ctx, "INSERT INTO user_library(user_id,manga_id,status) VALUES(?,?,'plan-to-read')", userID, id)

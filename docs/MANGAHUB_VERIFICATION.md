@@ -62,7 +62,22 @@ UpdateChaptersResponse. `buf lint` and `buf format --diff --exit-code` are part
 of the release verification. This records the actual checked contract, not
 an assumed success based only on generated code compiling.
 
-## Limitations to explain
+## Concurrent chapter release regression
+
+The release regression failed before the fix: a request setting chapter 2 could
+return metadata for chapter 100, because UPDATE and the subsequent SELECT were
+separate operations. Chapter releases now use UPDATE RETURNING, so the response
+captures that write's metadata. The HTTP handler uses this same gRPC response
+for its best-effort UDP notification.
+
+`TestConcurrentChapterReleasesReturnOwnCommittedValue` passed 30 runs with 100
+concurrent requests per run. `TestMangaConcurrentReleasesMatchHTTPAndUDP` passed
+10 runs through real HTTP/gRPC/UDP listeners, comparing every successful release
+with its HTTP response and local UDP event. Concurrent requests overtaken by a
+higher chapter are rejected; they must not emit a release alert. UDP arrival
+order and guaranteed delivery outside this local test are not promised.
+
+## Chat checks and remaining limitations
 
 Chat/UI hardening checks: `node --test scripts/test-web.cjs` executes the shipped
 web script with controlled DOM/network boundaries. It verifies Discussions does

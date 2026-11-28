@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/config"
-	cybertui "github.com/Anh2603/CyberLab-Hub/internal/tui"
+	"github.com/Anh2603/MangaHub/internal/config"
+	mangatui "github.com/Anh2603/MangaHub/internal/tui"
 )
 
 func main() {
@@ -16,12 +16,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	client, err := cybertui.NewClient(cfg.BackendHTTPURL, cfg.BackendTCPAddr, cfg.BackendUDPAddr)
+	client, err := mangatui.NewClient(cfg.BackendHTTPURL, cfg.BackendTCPAddr, cfg.BackendUDPAddr)
 	if err != nil {
 		logger.Error("invalid TUI client configuration", "error", err)
 		os.Exit(1)
 	}
-	if err := cybertui.NewMangaUI(client).Run(); err != nil {
+	if err := mangatui.NewMangaUI(client).Run(); err != nil {
 		logger.Error("TUI stopped", "error", err)
 		os.Exit(1)
 	}

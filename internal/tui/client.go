@@ -26,20 +26,6 @@ type User struct {
 	Role     string `json:"role"`
 }
 
-type Challenge struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Category    string `json:"category"`
-	Difficulty  string `json:"difficulty"`
-	Published   bool   `json:"published"`
-}
-
-type Progress struct {
-	ChallengeID string    `json:"challenge_id"`
-	SolvedAt    time.Time `json:"solved_at"`
-}
-
 type Client struct {
 	baseURL   string
 	tcpAddr   string
@@ -87,51 +73,6 @@ func (c *Client) User() User {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.user
-}
-
-func (c *Client) SearchChallenges(ctx context.Context, query string) ([]Challenge, error) {
-	var response struct {
-		Challenges []Challenge `json:"challenges"`
-	}
-	path := "/api/challenges"
-	if query != "" {
-		path += "?query=" + url.QueryEscape(query)
-	}
-	if err := c.request(ctx, http.MethodGet, path, nil, &response, true); err != nil {
-		return nil, err
-	}
-	return response.Challenges, nil
-}
-
-func (c *Client) SubmitAnswer(ctx context.Context, challengeID, answer string) (bool, error) {
-	var response struct {
-		Correct bool `json:"correct"`
-	}
-	err := c.request(ctx, http.MethodPost, "/api/challenges/"+url.PathEscape(challengeID)+"/submissions",
-		map[string]string{"answer": answer}, &response, true)
-	return response.Correct, err
-}
-
-func (c *Client) Progress(ctx context.Context) ([]Progress, error) {
-	var response struct {
-		Progress []Progress `json:"progress"`
-	}
-	if err := c.request(ctx, http.MethodGet, "/api/progress", nil, &response, true); err != nil {
-		return nil, err
-	}
-	return response.Progress, nil
-}
-
-func (c *Client) PublishChallenge(ctx context.Context, challenge Challenge, answer string) error {
-	payload := map[string]string{
-		"id": challenge.ID, "title": challenge.Title, "description": challenge.Description,
-		"category": challenge.Category, "difficulty": challenge.Difficulty, "answer": answer,
-	}
-	return c.request(ctx, http.MethodPost, "/api/admin/challenges", payload, &Challenge{}, true)
-}
-
-func (c *Client) ArchiveChallenge(ctx context.Context, id string) error {
-	return c.request(ctx, http.MethodDelete, "/api/admin/challenges/"+url.PathEscape(id), nil, &Challenge{}, true)
 }
 
 func (c *Client) RunProgressSync(ctx context.Context, events chan<- string, status chan<- string) {
@@ -224,18 +165,12 @@ func (c *Client) runProgressSession(ctx context.Context, events chan<- string, s
 	}()
 	for reader.Scan() {
 		var message struct {
-			Type        string `json:"type"`
-			ChallengeID string `json:"challenge_id"`
-			MangaID     string `json:"manga_id"`
-			Chapter     int    `json:"chapter"`
-			Version     int64  `json:"version"`
+			Type    string `json:"type"`
+			MangaID string `json:"manga_id"`
+			Chapter int    `json:"chapter"`
+			Version int64  `json:"version"`
 		}
 		if json.Unmarshal(reader.Bytes(), &message) == nil {
-			if message.Type == "progress" {
-				if !deliverProgress(ctx, events, "Progress synchronized: "+message.ChallengeID) {
-					return
-				}
-			}
 			if message.Type == "progress_updated" {
 				if !deliverProgress(ctx, events, fmt.Sprintf("Reading progress: %s chapter %d (v%d)", message.MangaID, message.Chapter, message.Version)) {
 					return
@@ -302,8 +237,6 @@ func (c *Client) RunNotifications(ctx context.Context, events chan<- string, sta
 				switch message.Type {
 				case "new_chapter":
 					nonBlocking(events, fmt.Sprintf("New chapter: %s — chapter %d", message.Title, message.Chapter))
-				case "challenge_published":
-					nonBlocking(events, "New challenge: "+message.Title)
 				case "subscribed":
 					nonBlocking(status, "UDP notifications subscribed")
 				case "error":

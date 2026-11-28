@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
-	realtime "github.com/Anh2603/CyberLab-Hub/internal/websocket"
+	"github.com/Anh2603/MangaHub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/store"
+	realtime "github.com/Anh2603/MangaHub/internal/websocket"
 	"github.com/gorilla/websocket"
 )
 
@@ -81,13 +81,13 @@ func TestBrowserWebSocketAuthenticatesWithSubprotocol(t *testing.T) {
 	}
 	server := httptest.NewServer(router)
 	defer server.Close()
-	dialer := websocket.Dialer{Subprotocols: []string{"cyberlab", "token." + session.Token}}
+	dialer := websocket.Dialer{Subprotocols: []string{"mangahub", "token." + session.Token}}
 	connection, response, err := dialer.Dial(strings.Replace(server.URL, "http://", "ws://", 1)+"/api/ws/rooms/general", nil)
 	if err != nil {
 		t.Fatalf("browser websocket: %v, response: %v", err, response)
 	}
 	defer connection.Close()
-	if connection.Subprotocol() != "cyberlab" {
+	if connection.Subprotocol() != "mangahub" {
 		t.Fatalf("subprotocol = %q", connection.Subprotocol())
 	}
 	if err := connection.WriteJSON(map[string]string{"body": "hello"}); err != nil {

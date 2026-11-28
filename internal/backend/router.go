@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
-	"github.com/Anh2603/CyberLab-Hub/internal/webapp"
+	"github.com/Anh2603/MangaHub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/store"
+	"github.com/Anh2603/MangaHub/internal/webapp"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,10 +24,6 @@ type AccountStore interface {
 type Dependencies struct {
 	Accounts      AccountStore
 	Tokens        *auth.Manager
-	Catalog       CatalogClient
-	Progress      ProgressStore
-	Events        ProgressPublisher
-	Notifier      PublicationNotifier
 	Discussions   DiscussionHandler
 	RPCTimeout    time.Duration
 	Manga         MangaClient
@@ -56,12 +52,6 @@ func NewRouter(deps Dependencies) *gin.Engine {
 	admin.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "scope": "admin"})
 	})
-	if deps.Catalog != nil {
-		challengeHandler{
-			catalog: deps.Catalog, progress: deps.Progress, events: deps.Events,
-			notifier: deps.Notifier, timeout: deps.RPCTimeout,
-		}.register(authenticated, admin)
-	}
 	(&mangaHandler{catalog: deps.Manga, library: deps.Library, events: deps.MangaEvents, notifier: deps.ChapterAlerts, timeout: deps.RPCTimeout}).register(authenticated, admin)
 	if deps.Discussions != nil {
 		authenticated.GET("/ws/rooms/:room", deps.Discussions.Handle)

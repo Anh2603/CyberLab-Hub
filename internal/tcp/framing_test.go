@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/auth"
 )
 
 func TestTCPFramingRejectsUnterminatedEOF(t *testing.T) {

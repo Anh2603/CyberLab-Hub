@@ -50,7 +50,7 @@ func (m *Manager) Issue(identity Identity) (string, error) {
 		Username: identity.Username,
 		Role:     identity.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "cyberlab-hub",
+			Issuer:    "mangahub",
 			Subject:   strconv.FormatInt(identity.UserID, 10),
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(m.ttl)),
@@ -66,7 +66,7 @@ func (m *Manager) Parse(raw string) (Identity, error) {
 			return nil, ErrInvalidToken
 		}
 		return m.secret, nil
-	}, jwt.WithIssuer("cyberlab-hub"), jwt.WithExpirationRequired(), jwt.WithTimeFunc(m.now))
+	}, jwt.WithIssuer("mangahub"), jwt.WithExpirationRequired(), jwt.WithTimeFunc(m.now))
 	if err != nil || !token.Valid {
 		return Identity{}, ErrInvalidToken
 	}

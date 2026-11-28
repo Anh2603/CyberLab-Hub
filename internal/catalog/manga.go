@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strings"
 
-	pb "github.com/Anh2603/CyberLab-Hub/gen/catalog/v1"
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	pb "github.com/Anh2603/MangaHub/gen/catalog/v1"
+	"github.com/Anh2603/MangaHub/internal/store"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

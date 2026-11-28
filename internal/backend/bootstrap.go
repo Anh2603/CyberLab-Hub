@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	"github.com/Anh2603/MangaHub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/store"
 )
 
 func BootstrapAdmin(ctx context.Context, accounts *store.Backend, username, password string) (bool, error) {

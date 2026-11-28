@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	"github.com/Anh2603/MangaHub/internal/store"
 )
 
 func TestRealMangaSeedAndExplicitRefresh(t *testing.T) {

@@ -28,9 +28,12 @@ flowchart LR
 - `cmd/catalog-refresh`: explicit offline metadata migration tool; it is not a
   substitute for the separate runtime catalog service.
 
-The Go module/repository path retains `CyberLab-Hub` for compatibility. Legacy
-challenge tables and tests remain; production commands select MangaHub services.
-No user's solved challenge is interpreted as manga reading progress.
+The Go module is `github.com/Anh2603/MangaHub`. Only MangaHub HTTP handlers,
+RPCs and TUI screens are compiled. Backend startup creates users and libraries;
+catalog startup creates manga metadata. Existing databases are upgraded without
+dropping tables. The persisted `learner` role is retained for account compatibility
+and displayed as Reader. JWT issuer and WebSocket subprotocol are `mangahub`;
+browser session storage uses `mangahub.session`. Upgrading requires a fresh login.
 
 ## Progress update flow
 

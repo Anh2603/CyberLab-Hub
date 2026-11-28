@@ -2,7 +2,7 @@ package tui
 
 import (
 	"context"
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	"github.com/Anh2603/MangaHub/internal/store"
 	"net/http"
 	"net/url"
 )

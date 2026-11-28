@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/auth"
 )
 
 func TestSubscribeNotifyAndUnsubscribe(t *testing.T) {
@@ -26,10 +26,14 @@ func TestSubscribeNotifyAndUnsubscribe(t *testing.T) {
 		t.Fatalf("subscribe response = %#v", acknowledgement)
 	}
 
-	server.NotifyChallengePublished("new-task", "New Task", "forensics", "easy")
-	var event PublicationEvent
+	server.NotifyNewChapter("naruto", "Naruto", 701)
+	var event struct {
+		Type    string `json:"type"`
+		ID      string `json:"manga_id"`
+		Chapter int    `json:"chapter"`
+	}
 	readDatagram(t, connection, &event)
-	if event.Type != "challenge_published" || event.ID != "new-task" {
+	if event.Type != "new_chapter" || event.ID != "naruto" || event.Chapter != 701 {
 		t.Fatalf("publication event = %#v", event)
 	}
 
@@ -38,7 +42,7 @@ func TestSubscribeNotifyAndUnsubscribe(t *testing.T) {
 	if acknowledgement["type"] != "unsubscribed" {
 		t.Fatalf("unsubscribe response = %#v", acknowledgement)
 	}
-	server.NotifyChallengePublished("another-task", "Another Task", "network", "medium")
+	server.NotifyNewChapter("one-piece", "One Piece", 701)
 	assertNoDatagram(t, connection)
 }
 
@@ -53,7 +57,7 @@ func TestExpiredAndUnreachableSubscribersDoNotBreakDelivery(t *testing.T) {
 	var response map[string]any
 	readDatagram(t, expired, &response)
 	time.Sleep(75 * time.Millisecond)
-	server.NotifyChallengePublished("expired-task", "Expired Task", "network", "easy")
+	server.NotifyNewChapter("bleach", "Bleach", 701)
 	assertNoDatagram(t, expired)
 	expired.Close()
 
@@ -73,10 +77,14 @@ func TestExpiredAndUnreachableSubscribersDoNotBreakDelivery(t *testing.T) {
 	defer active.Close()
 	sendSubscription(t, active, address, "subscribe", token, "client-4444")
 	readDatagram(t, active, &response)
-	server.NotifyChallengePublished("live-task", "Live Task", "log-analysis", "hard")
-	var event PublicationEvent
+	server.NotifyNewChapter("berserk", "Berserk", 701)
+	var event struct {
+		Type    string `json:"type"`
+		ID      string `json:"manga_id"`
+		Chapter int    `json:"chapter"`
+	}
 	readDatagram(t, active, &event)
-	if event.ID != "live-task" {
+	if event.ID != "berserk" {
 		t.Fatalf("active subscriber event = %#v", event)
 	}
 }

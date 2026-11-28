@@ -8,7 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/store"
 )
 
 func TestProgressDeliveryIsPrivateAndExcludesOrigin(t *testing.T) {
@@ -35,13 +36,18 @@ func TestProgressDeliveryIsPrivateAndExcludesOrigin(t *testing.T) {
 	other, otherReader := connectSession(t, listener.Addr().String(), otherToken, "session-3333")
 	defer other.Close()
 
-	server.PublishProgress(11, "session-1111", "dns-log-basics", time.Now())
+	server.PublishMangaProgress(11, "session-1111", store.LibraryEntry{MangaID: "naruto", CurrentChapter: 5, Version: 2})
 	_ = receiver.SetReadDeadline(time.Now().Add(time.Second))
-	var event ProgressEvent
+	var event struct {
+		Type    string `json:"type"`
+		MangaID string `json:"manga_id"`
+		Chapter int    `json:"chapter"`
+		Version int64  `json:"version"`
+	}
 	if err := readLineJSON(receiverReader, &event); err != nil {
 		t.Fatalf("receiver event error = %v", err)
 	}
-	if event.Type != "progress" || event.ChallengeID != "dns-log-basics" {
+	if event.Type != "progress_updated" || event.MangaID != "naruto" || event.Chapter != 5 || event.Version != 2 {
 		t.Fatalf("receiver event = %#v", event)
 	}
 	assertNoLine(t, origin, originReader, "origin")

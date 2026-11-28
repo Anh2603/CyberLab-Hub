@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	"github.com/Anh2603/MangaHub/internal/store"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
-	"github.com/Anh2603/CyberLab-Hub/internal/backend"
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	"github.com/Anh2603/MangaHub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/backend"
+	"github.com/Anh2603/MangaHub/internal/store"
 	"github.com/gorilla/websocket"
 )
 

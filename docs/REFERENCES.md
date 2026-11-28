@@ -12,5 +12,5 @@
 - [Manga metadata sources](MANGA_SOURCES.md): per-title sources and snapshot notes.
 
 Dependency versions/checksums are in go.mod/go.sum. Generated stubs come from this
-repository's own .proto files. Earlier CyberLab design inspiration is preserved
-in Git history; it is not the active MangaHub specification.
+repository's own .proto files. The application implements the MangaHub workflows
+defined by the assignment.

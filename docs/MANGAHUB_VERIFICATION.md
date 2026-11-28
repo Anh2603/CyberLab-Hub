@@ -45,8 +45,8 @@ Existing auth, TCP, UDP, WebSocket, storage, and configuration suites remain.
 They cover malformed/oversized messages, token checks, unavailable receivers,
 unsubscribe/expiry, room isolation, cleanup, and bounded socket operations.
 
-The old CyberLab-specific tests only preserve migration infrastructure; MangaHub
-feature evidence comes from the `TestManga*` tests above.
+MangaHub feature evidence comes from the `TestManga*` tests above. Transport
+regressions exercise reading-progress updates and chapter-release notifications.
 
 ## Reliability hardening on 2026-11-27
 

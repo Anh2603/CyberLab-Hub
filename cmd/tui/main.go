@@ -21,7 +21,7 @@ func main() {
 		logger.Error("invalid TUI client configuration", "error", err)
 		os.Exit(1)
 	}
-	if err := cybertui.NewUI(client).Run(); err != nil {
+	if err := cybertui.NewMangaUI(client).Run(); err != nil {
 		logger.Error("TUI stopped", "error", err)
 		os.Exit(1)
 	}

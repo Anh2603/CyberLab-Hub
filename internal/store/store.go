@@ -58,6 +58,10 @@ func OpenBackend(ctx context.Context, path string) (*Backend, error) {
 		db.Close()
 		return nil, fmt.Errorf("migrate backend database: %w", err)
 	}
+	if err := store.MigrateLibrary(ctx); err != nil {
+		db.Close()
+		return nil, err
+	}
 	return store, nil
 }
 
@@ -70,6 +74,10 @@ func OpenCatalog(ctx context.Context, path string) (*Catalog, error) {
 	if err := store.migrate(ctx); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("migrate catalog database: %w", err)
+	}
+	if err := store.MigrateManga(ctx); err != nil {
+		db.Close()
+		return nil, err
 	}
 	return store, nil
 }

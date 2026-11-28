@@ -1,114 +1,93 @@
-# System Architecture
+# MangaHub architecture
 
-## Design goals
+The required application has three independent Go processes. The browser is an
+additional client; the assessed five-protocol workflows run through the tview TUI.
 
-CyberLab Hub is a small, explainable distributed system for two student developers. Each protocol has one observable product responsibility. The first release prioritizes correctness, isolation, failure handling, and reproducible demonstrations over feature count.
-
-## Processes and data ownership
-
-### TUI client
-
-The TUI is a `tview` application. It never reads SQLite files directly. It communicates only through the backend's public network interfaces.
-
-Planned screens:
-
-- Login and registration
-- Challenge browser
-- Challenge details and answer submission
-- My learning progress
-- Discussion rooms
-- Notifications
-- Connection status and help
-- Administrator challenge publishing
-
-### Gin backend
-
-The backend owns:
-
-- Users and password hashes
-- Authentication and authorization
-- Submission history
-- Per-user challenge progress
-- TCP session registry
-- UDP subscription registry
-- WebSocket room hub
-
-The backend does not read the catalog database directly. Challenge discovery, details, answer verification, and publishing cross the gRPC boundary.
-
-### Challenge Catalog Service
-
-The catalog is a separate Go process with its own SQLite database. It owns challenge content, publication state, answer verification material, categories, and difficulty.
-
-Planned unary RPCs:
-
-- `SearchChallenges`
-- `GetChallenge`
-- `VerifyAnswer`
-- `PublishChallenge`
-- `ArchiveChallenge`
-
-## Protocol responsibilities
-
-| Protocol | Product responsibility | Main failure to demonstrate |
-| --- | --- | --- |
-| HTTP | Accounts, challenge browsing, submissions, progress queries | Invalid input, unauthorized request, persistence after restart |
-| TCP | Private progress synchronization between sessions of one learner | Framing, disconnect cleanup, cross-user isolation |
-| UDP | Best-effort notification that a challenge was published | Lost/unavailable receiver does not crash the backend |
-| WebSocket | Live discussion scoped to a server-controlled room | Room isolation and disconnected-client cleanup |
-| gRPC | Backend-to-catalog typed service calls | Deadline-bounded failure when the catalog is stopped |
-
-## Primary learning flow
-
-1. The learner signs in through HTTP and receives a JWT.
-2. The TUI requests a challenge through HTTP.
-3. The backend calls the catalog through a generated gRPC client with a deadline.
-4. The learner submits an answer through HTTP.
-5. The backend asks the catalog to verify the answer.
-6. After a correct answer, the backend commits progress to SQLite.
-7. Only after the commit succeeds, the backend sends a TCP progress event to other authenticated sessions of the same learner.
-
-## Challenge publishing flow
-
-1. An administrator requests publication through a protected HTTP endpoint.
-2. The backend checks the administrator role.
-3. The backend calls `PublishChallenge` through gRPC.
-4. After gRPC confirms publication, the backend sends a UDP notification to subscribed clients.
-5. A learner who misses the datagram still sees the published challenge during the next HTTP search.
-
-## Security boundaries
-
-- Challenge responses never expose expected answers or verification secrets.
-- Passwords are hashed with bcrypt.
-- JWTs are not accepted from query strings except where a WebSocket client limitation is explicitly documented and mitigated.
-- TCP and UDP registration messages require authenticated session material.
-- The server derives the learner identity from verified authentication.
-- Database queries are parameterized.
-- Authentication attempts, message sizes, and request durations are bounded.
-- Seed content uses synthetic data and does not include real credentials or malicious payloads.
-
-## Initial repository layout
-
-```text
-cmd/
-  tui/
-  backend/
-  catalog/
-internal/
-  auth/
-  backend/
-  catalog/
-  challenge/
-  progress/
-  tcp/
-  udp/
-  websocket/
-  tui/
-proto/
-gen/
-migrations/
-seed/
-tests/
-docs/
+```mermaid
+flowchart LR
+  TUI[Go tview TUI] -->|HTTP JSON + JWT| API[Go Gin backend]
+  API -->|TCP NDJSON: private progress| TUI
+  API -->|UDP datagrams: new chapter| TUI
+  TUI <-->|WebSocket room chat| API
+  API -->|gRPC + Protobuf, deadline| Catalog[Go MangaCatalog process]
+  API --> BDB[(Backend SQLite: users, user_library)]
+  Catalog --> CDB[(Catalog SQLite: manga)]
+  Web[Optional web UI] -->|HTTP + WebSocket| API
 ```
 
-The exact package boundaries may be adjusted after the first vertical slice, but the three-process boundary and data ownership will remain stable.
+## Ownership and boundaries
+
+- `cmd/backend`: accounts, hashed passwords, JWT validation, personal libraries,
+  versioned reading progress, protected chapter-release endpoint, TCP/UDP hubs,
+  and room-isolated Gorilla WebSocket hub.
+- `cmd/catalog`: `SearchManga`, `GetManga`, `UpdateChapters` RPCs and manga SQLite.
+  Only this process accesses catalog metadata during normal operation. It binds
+  to loopback because its update RPC has no external transport authentication.
+- `cmd/tui`: renders controls, performs HTTP requests off the event loop, receives
+  TCP/UDP/WebSocket traffic and updates widgets via `QueueUpdateDraw`.
+- `cmd/catalog-refresh`: explicit offline metadata migration tool; it is not a
+  substitute for the separate runtime catalog service.
+
+The Go module/repository path retains `CyberLab-Hub` for compatibility. Legacy
+challenge tables and tests remain; production commands select MangaHub services.
+No user's solved challenge is interpreted as manga reading progress.
+
+## Progress update flow
+
+```mermaid
+sequenceDiagram
+  participant A as TUI A (reader)
+  participant API as Gin backend
+  participant CAT as Catalog gRPC
+  participant DB as Backend SQLite
+  participant B as TUI B (same reader)
+  A->>API: PUT library progress + JWT + X-Session-ID
+  API->>CAT: GetManga with deadline
+  CAT-->>API: total_chapters
+  API->>API: Validate integer chapter bounds + status
+  API->>DB: UPDATE progress, version=version+1 RETURNING
+  DB-->>API: Committed record
+  API-->>B: TCP newline-delimited progress_updated
+  API-->>A: HTTP updated record
+  B->>API: Event-triggered GET library
+  API-->>B: Authoritative saved state
+```
+
+The backend serializes progress commit plus event enqueue to preserve server
+version order. The TCP hub routes only to other sessions of the verified user.
+The TUI applies backpressure instead of dropping parsed progress events. Multiple
+events coalesce into a bounded library refresh. If TCP breaks, exponential-backoff
+reconnection triggers a fresh library read, recovering state missed while offline.
+This is event-driven recovery, not periodic HTTP polling.
+
+## Chapter release flow
+
+```mermaid
+sequenceDiagram
+  participant Admin as Admin TUI
+  participant API as Gin backend
+  participant CAT as Catalog gRPC
+  participant DB as Catalog SQLite
+  participant Readers as Subscribed TUIs
+  Admin->>API: POST release + admin JWT + new total
+  API->>CAT: UpdateChapters with deadline
+  CAT->>DB: Increase total_chapters
+  DB-->>CAT: Saved catalog record
+  CAT-->>API: Manga with new total
+  API-->>Readers: UDP new_chapter datagram
+  API-->>Admin: HTTP success
+```
+
+UDP subscribers authenticate, unsubscribe explicitly, and expire unless renewed.
+Datagrams are best-effort. A missing receiver does not roll back the saved release.
+
+## Failure behavior and limits
+
+HTTP input errors use controlled status codes. Catalog calls have deadlines;
+catalog downtime maps to HTTP 503. TCP uses one JSON object per newline and a
+bounded server queue. Slow or broken clients are disconnected without blocking
+other readers. WebSocket rooms use server-controlled membership and one writer
+per socket. Chat history is not persisted. Redis is not implemented (optional).
+
+Keep the same JWT secret across backend restarts to resume existing sessions.
+Changing the secret intentionally invalidates those sessions and requires login.

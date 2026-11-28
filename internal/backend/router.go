@@ -22,14 +22,18 @@ type AccountStore interface {
 }
 
 type Dependencies struct {
-	Accounts    AccountStore
-	Tokens      *auth.Manager
-	Catalog     CatalogClient
-	Progress    ProgressStore
-	Events      ProgressPublisher
-	Notifier    PublicationNotifier
-	Discussions DiscussionHandler
-	RPCTimeout  time.Duration
+	Accounts      AccountStore
+	Tokens        *auth.Manager
+	Catalog       CatalogClient
+	Progress      ProgressStore
+	Events        ProgressPublisher
+	Notifier      PublicationNotifier
+	Discussions   DiscussionHandler
+	RPCTimeout    time.Duration
+	Manga         MangaClient
+	Library       LibraryStore
+	MangaEvents   MangaProgressPublisher
+	ChapterAlerts ChapterNotifier
 }
 
 func NewRouter(deps Dependencies) *gin.Engine {
@@ -38,7 +42,7 @@ func NewRouter(deps Dependencies) *gin.Engine {
 	webapp.Register(router)
 	router.GET("/api/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"service": "cyberlab-backend",
+			"service": "mangahub-backend",
 			"status":  "ok",
 		})
 	})
@@ -52,10 +56,13 @@ func NewRouter(deps Dependencies) *gin.Engine {
 	admin.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok", "scope": "admin"})
 	})
-	challengeHandler{
-		catalog: deps.Catalog, progress: deps.Progress, events: deps.Events,
-		notifier: deps.Notifier, timeout: deps.RPCTimeout,
-	}.register(authenticated, admin)
+	if deps.Catalog != nil {
+		challengeHandler{
+			catalog: deps.Catalog, progress: deps.Progress, events: deps.Events,
+			notifier: deps.Notifier, timeout: deps.RPCTimeout,
+		}.register(authenticated, admin)
+	}
+	(&mangaHandler{catalog: deps.Manga, library: deps.Library, events: deps.MangaEvents, notifier: deps.ChapterAlerts, timeout: deps.RPCTimeout}).register(authenticated, admin)
 	if deps.Discussions != nil {
 		authenticated.GET("/ws/rooms/:room", deps.Discussions.Handle)
 	}

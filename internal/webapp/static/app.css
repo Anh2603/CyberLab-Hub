@@ -147,6 +147,8 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 36px); line-height: 1.15; letter-spa
 .answer-card label, .admin-form label { display: block; font-weight: 600; }
 .answer-card input, .admin-form input, .admin-form select, .admin-form textarea { display: block; margin: 7px 0 15px; }
 .answer-card .primary-button { margin-top: 4px; }
+.reading-form label { display: grid; gap: 7px; }
+.reading-form input, .reading-form select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-lowest); color: var(--text); font: inherit; }
 .success-message, .error-message { margin-top: 16px; padding: 12px; border-left: 3px solid; }
 .success-message { color: var(--success); background: rgba(66,190,101,.1); }
 .error-message { color: #ffd7da; background: var(--error-surface); border-color: var(--error); }
@@ -170,6 +172,8 @@ h1 { margin: 0; font-size: clamp(28px, 4vw, 36px); line-height: 1.15; letter-spa
 .chat-panel { min-height: 520px; }
 .chat-messages { flex: 1; min-height: 330px; max-height: 55vh; overflow: auto; padding: 12px; border: 1px solid var(--border); background: var(--surface-lowest); }
 .chat-messages > div { padding: 10px; border-bottom: 1px solid var(--border); }
+.chat-message-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.chat-message-header time { color: var(--subtle); font-size: 12px; font-variant-numeric: tabular-nums; }
 .chat-messages p { margin: 4px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-form { display: flex; gap: 8px; }
 .chat-form input { flex: 1; min-width: 0; padding: 10px; background: var(--surface-lowest); color: var(--text); border: 1px solid var(--border); }

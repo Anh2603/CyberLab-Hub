@@ -139,6 +139,14 @@ func (s *Server) handleDatagram(connection *net.UDPConn, address *net.UDPAddr, p
 }
 
 func (s *Server) NotifyChallengePublished(id, title, category, difficulty string) {
+	s.notify(PublicationEvent{Type: "challenge_published", ID: id, Title: title, Category: category, Difficulty: difficulty})
+}
+
+func (s *Server) NotifyNewChapter(id, title string, chapter int) {
+	s.notify(map[string]any{"type": "new_chapter", "manga_id": id, "title": title, "chapter": chapter})
+}
+
+func (s *Server) notify(event any) {
 	now := s.now().UTC()
 	s.mu.Lock()
 	connection := s.connection
@@ -153,9 +161,6 @@ func (s *Server) NotifyChallengePublished(id, title, category, difficulty string
 	s.mu.Unlock()
 	if connection == nil {
 		return
-	}
-	event := PublicationEvent{
-		Type: "challenge_published", ID: id, Title: title, Category: category, Difficulty: difficulty,
 	}
 	payload, err := json.Marshal(event)
 	if err != nil {

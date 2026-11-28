@@ -1,10 +1,8 @@
 # Assignment alignment
 
-The active project has been converted to MangaHub. The previous CyberLab domain
-substitution is no longer the proposed submission.
+MangaHub implements the required F01–F06 workflows through three independent Go
+programs and all five assigned networking protocols. The web UI is an additional
+client; the tview TUI remains the assessed client.
 
-See [MangaHub requirement mapping](MANGAHUB_ALIGNMENT.md),
-[architecture](ARCHITECTURE.md), and [demo guide](DEMO.md).
-
-Historical CyberLab code/data remains for migration safety and regression tests;
-the production backend, catalog and tview commands select MangaHub workflows.
+See [requirement mapping](MANGAHUB_ALIGNMENT.md), [architecture](ARCHITECTURE.md),
+and [demo guide](DEMO.md). Redis is optional and is not implemented.

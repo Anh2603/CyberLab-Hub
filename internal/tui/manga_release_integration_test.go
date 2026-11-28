@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	"github.com/Anh2603/MangaHub/internal/store"
 )
 
 func TestMangaConcurrentReleasesMatchHTTPAndUDP(t *testing.T) {

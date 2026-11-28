@@ -1,4 +1,4 @@
-module github.com/Anh2603/CyberLab-Hub
+module github.com/Anh2603/MangaHub
 
 go 1.26.0
 

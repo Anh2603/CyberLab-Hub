@@ -12,20 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/auth"
 )
 
 const maxDatagramBytes = 8 * 1024
 
 var clientIDPattern = regexp.MustCompile(`^[A-Za-z0-9-]{8,64}$`)
-
-type PublicationEvent struct {
-	Type       string `json:"type"`
-	ID         string `json:"id"`
-	Title      string `json:"title"`
-	Category   string `json:"category"`
-	Difficulty string `json:"difficulty"`
-}
 
 type subscription struct {
 	address   *net.UDPAddr
@@ -136,10 +128,6 @@ func (s *Server) handleDatagram(connection *net.UDPConn, address *net.UDPAddr, p
 		return
 	}
 	s.respond(connection, address, map[string]string{"type": "unsubscribed", "client_id": message.ClientID})
-}
-
-func (s *Server) NotifyChallengePublished(id, title, category, difficulty string) {
-	s.notify(PublicationEvent{Type: "challenge_published", ID: id, Title: title, Category: category, Difficulty: difficulty})
 }
 
 func (s *Server) NotifyNewChapter(id, title string, chapter int) {

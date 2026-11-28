@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -31,7 +31,7 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		upgrader: websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024, Subprotocols: []string{"cyberlab"}},
+		upgrader: websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024, Subprotocols: []string{"mangahub"}},
 		rooms:    make(map[string]map[*client]struct{}),
 	}
 }

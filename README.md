@@ -140,10 +140,9 @@ The detailed TUI demonstration route is in [DEMO.md](docs/DEMO.md).
   sessions with backoff and reloads saved state on successful authentication.
   Keep the same JWT secret over backend restarts; a new secret requires login.
 - Redis is optional and is not implemented.
-- The repository/module path retains `CyberLab-Hub` for Git/import compatibility.
-  Older CyberLab tables, handlers, and regression tests remain for migration
-  safety; the three production commands select MangaHub services and screens.
-  `docs/REPORT_DRAFT.md` remains an untouched historical draft; current architecture,
-  demo, alignment and verification guides describe MangaHub.
+- The Go module is `github.com/Anh2603/MangaHub`. All runtime services, web
+  sessions, WebSocket negotiation and generated catalog stubs use MangaHub names.
+  Upgrading requires signing in again; existing accounts and libraries are retained.
+  Startup preserves existing database tables and never drops historical data.
 - Final `REPORT.pdf` and the pair's contribution/ownership record remain a
   separate submission step. Do not submit personal databases or secrets.

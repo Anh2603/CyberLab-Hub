@@ -5,9 +5,9 @@ import (
 	"context"
 	"log"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/catalog"
-	"github.com/Anh2603/CyberLab-Hub/internal/config"
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	"github.com/Anh2603/MangaHub/internal/catalog"
+	"github.com/Anh2603/MangaHub/internal/config"
+	"github.com/Anh2603/MangaHub/internal/store"
 )
 
 func main() {

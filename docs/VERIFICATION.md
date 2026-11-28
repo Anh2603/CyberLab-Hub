@@ -4,9 +4,8 @@ Current application: MangaHub v3.0. See [MangaHub verification](MANGAHUB_VERIFIC
 for the feature table and [TCP queue defect](DEFECT_PROGRESS_QUEUE.md) for the
 observed failure, fix and retest.
 
-The previous CyberLab verification record is historical and available in Git.
-Its old coverage/vulnerability numbers are not presented as measurements of the
-current MangaHub release.
+Measurements in the linked verification record apply to the MangaHub runtime
+and its connected protocol workflows.
 
 Core checks: `go test -count=1 ./...`, `go vet ./...`, and build all three commands.
 Independent-process check: set `MANGAHUB_PROCESS_TEST=1`, then run

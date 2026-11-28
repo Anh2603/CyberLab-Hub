@@ -1,7 +1,7 @@
 syntax = "proto3";
 package catalog.v1;
 
-option go_package = "github.com/Anh2603/CyberLab-Hub/gen/catalog/v1;catalogv1";
+option go_package = "github.com/Anh2603/MangaHub/gen/catalog/v1;catalogv1";
 
 service MangaCatalogService {
   rpc SearchManga(SearchMangaRequest) returns (SearchMangaResponse);

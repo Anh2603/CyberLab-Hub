@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const sessionKey = 'cyberlab.session';
+  const sessionKey = 'mangahub.session';
   const form = document.getElementById('auth-form');
   if (!form) return;
 

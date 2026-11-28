@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/Anh2603/CyberLab-Hub/gen/catalog/v1"
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	pb "github.com/Anh2603/MangaHub/gen/catalog/v1"
+	"github.com/Anh2603/MangaHub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/store"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

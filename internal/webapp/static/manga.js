@@ -24,7 +24,7 @@
     const r = await fetch(path, {signal:controller.signal, method, headers: {Authorization:`Bearer ${token}`, ...(data ? {'Content-Type':'application/json'} : {})}, ...(data ? {body:JSON.stringify(data)} : {})});
     connection(r.status >= 500 ? 'Service unavailable — retry your action' : 'Backend connected');
     const result = await r.json().catch(() => ({}));
-    if(r.status === 401) { sessionStorage.removeItem('cyberlab.session'); location.replace('/login'); }
+    if(r.status === 401) { sessionStorage.removeItem('mangahub.session'); location.replace('/login'); }
     if(!r.ok) throw Error(result.error || 'Request failed');
     return result;
     } catch(e) {
@@ -71,7 +71,7 @@
         const status = document.getElementById('room-status');
         status.textContent='Connecting...';
         document.getElementById('chat-log').replaceChildren();
-        const s=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/api/ws/rooms/${encodeURIComponent(document.getElementById('room-name').value)}`,['cyberlab',`token.${token}`]);
+        const s=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/api/ws/rooms/${encodeURIComponent(document.getElementById('room-name').value)}`,['mangahub',`token.${token}`]);
         socket=s;
         s.onopen=()=>{if(socket===s){status.textContent='Connected';connection('Backend connected');}};
         s.onclose=()=>{if(socket===s){status.textContent='Disconnected - join the room again';connection('Chat disconnected');releasePending();message('Chat disconnected. Unconfirmed draft kept; check for duplicates before resending.');}};
@@ -117,7 +117,7 @@
       view.innerHTML=`<div class="web-hero">${heading('MangaHub','Discover titles, keep a personal library, and track your reading.')}<a class="primary-link" href="#browser">Explore manga</a></div><div class="stats progress-stats"><article><small>Catalog</small><strong>${manga.length} manga</strong></article><article><small>My Library</small><strong>${library.length} titles</strong></article><article><small>Completed</small><strong>${library.filter(e=>e.status==='completed').length}</strong></article></div><h2>Featured manga</h2><div class="web-grid">${(featured.length?featured:manga.slice(0,3)).map(card).join('')}</div>`;
     }
   }
-  document.getElementById('logout-button').onclick=()=>{sessionStorage.removeItem('cyberlab.session');location.replace('/login');};
+  document.getElementById('logout-button').onclick=()=>{sessionStorage.removeItem('mangahub.session');location.replace('/login');};
   window.addEventListener('hashchange',()=>route().catch(e=>message(e.message)));
-  (async()=>{try{const session=JSON.parse(sessionStorage.getItem('cyberlab.session'));if(!session?.token){location.replace('/login');return;}token=session.token;user=await api('/api/me');document.getElementById('sidebar-username').textContent=user.username;document.getElementById('sidebar-role').textContent=user.role==='admin'?'Administrator':'Reader';document.getElementById('user-avatar').textContent=user.username.slice(0,2).toUpperCase();document.getElementById('workspace-label').textContent='Reading workspace';document.getElementById('nav-label').textContent='MangaHub';connection('Backend connected');nav.innerHTML=[['overview','Overview'],['browser','Manga Browser'],['library','My Library'],['discussions','Discussions'],['notifications','Chapter Updates'],...(user.role==='admin'?[['admin','Release Chapter']]:[])].map(([p,t])=>`<a class="nav-item" href="#${p}" data-page="${p}">${t}</a>`).join('');await route();}catch(e){message(e.message);}})();
+  (async()=>{try{const session=JSON.parse(sessionStorage.getItem('mangahub.session'));if(!session?.token){location.replace('/login');return;}token=session.token;user=await api('/api/me');document.getElementById('sidebar-username').textContent=user.username;document.getElementById('sidebar-role').textContent=user.role==='admin'?'Administrator':'Reader';document.getElementById('user-avatar').textContent=user.username.slice(0,2).toUpperCase();document.getElementById('workspace-label').textContent='Reading workspace';document.getElementById('nav-label').textContent='MangaHub';connection('Backend connected');nav.innerHTML=[['overview','Overview'],['browser','Manga Browser'],['library','My Library'],['discussions','Discussions'],['notifications','Chapter Updates'],...(user.role==='admin'?[['admin','Release Chapter']]:[])].map(([p,t])=>`<a class="nav-item" href="#${p}" data-page="${p}">${t}</a>`).join('');await route();}catch(e){message(e.message);}})();
 })();

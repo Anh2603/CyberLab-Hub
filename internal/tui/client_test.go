@@ -10,16 +10,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
-	tcpsync "github.com/Anh2603/CyberLab-Hub/internal/tcp"
-	udpnotify "github.com/Anh2603/CyberLab-Hub/internal/udp"
+	"github.com/Anh2603/MangaHub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/store"
+	tcpsync "github.com/Anh2603/MangaHub/internal/tcp"
+	udpnotify "github.com/Anh2603/MangaHub/internal/udp"
 	"github.com/gorilla/websocket"
 )
 
 func TestRoomClientSendsReceivesAndCancels(t *testing.T) {
 	sentAt := time.Date(2026, 11, 27, 10, 0, 0, 0, time.UTC)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/ws/rooms/log-analysis" || r.Header.Get("Authorization") != "Bearer test-token" {
+		if r.URL.Path != "/api/ws/rooms/general" || r.Header.Get("Authorization") != "Bearer test-token" {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -47,7 +48,7 @@ func TestRoomClientSendsReceivesAndCancels(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	events := make(chan string, 4)
-	send, err := client.JoinRoom(ctx, "log-analysis", events)
+	send, err := client.JoinRoom(ctx, "general", events)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,16 +80,29 @@ func TestHTTPClientWorkflow(t *testing.T) {
 			http.Error(writer, `{"error":"missing client credentials"}`, http.StatusUnauthorized)
 			return
 		}
-		switch {
-		case request.URL.Path == "/api/challenges":
-			_ = json.NewEncoder(writer).Encode(map[string]any{"challenges": []map[string]any{{"id": "dns-log-basics", "title": "DNS", "published": true}}})
-		case strings.HasSuffix(request.URL.Path, "/submissions"):
-			_ = json.NewEncoder(writer).Encode(map[string]bool{"correct": true})
-		case request.URL.Path == "/api/progress":
-			_ = json.NewEncoder(writer).Encode(map[string]any{"progress": []map[string]any{{"challenge_id": "dns-log-basics", "solved_at": time.Now().UTC()}}})
-		case request.URL.Path == "/api/admin/challenges":
-			writer.WriteHeader(http.StatusCreated)
-			_ = json.NewEncoder(writer).Encode(map[string]string{"id": "new-task"})
+		switch request.URL.Path {
+		case "/api/manga":
+			if request.URL.Query().Get("q") != "naruto" {
+				t.Error("missing search query")
+			}
+			_ = json.NewEncoder(writer).Encode(map[string]any{"manga": []store.Manga{{ID: "naruto", Title: "Naruto"}}})
+		case "/api/library":
+			if request.Method == http.MethodPost {
+				writer.WriteHeader(http.StatusCreated)
+				return
+			}
+			_ = json.NewEncoder(writer).Encode(map[string]any{"library": []store.LibraryEntry{{MangaID: "naruto", CurrentChapter: 5}}})
+		case "/api/library/naruto/progress":
+			var body struct {
+				Chapter int    `json:"current_chapter"`
+				Status  string `json:"status"`
+			}
+			if json.NewDecoder(request.Body).Decode(&body) != nil || body.Chapter != 5 || body.Status != "reading" {
+				t.Error("incorrect progress payload")
+			}
+			_ = json.NewEncoder(writer).Encode(store.LibraryEntry{MangaID: "naruto", CurrentChapter: 5, Version: 2})
+		case "/api/admin/manga/naruto/release":
+			writer.WriteHeader(http.StatusOK)
 		default:
 			http.NotFound(writer, request)
 		}
@@ -102,20 +116,23 @@ func TestHTTPClientWorkflow(t *testing.T) {
 	if err != nil || user.Role != "admin" {
 		t.Fatalf("Authenticate() user = %#v, error = %v", user, err)
 	}
-	challenges, err := client.SearchChallenges(context.Background(), "dns")
-	if err != nil || len(challenges) != 1 {
-		t.Fatalf("SearchChallenges() count = %d, error = %v", len(challenges), err)
+	manga, err := client.SearchManga(context.Background(), "naruto")
+	if err != nil || len(manga) != 1 || manga[0].ID != "naruto" {
+		t.Fatalf("SearchManga = %v, %v", manga, err)
 	}
-	correct, err := client.SubmitAnswer(context.Background(), "dns-log-basics", "flag{dns_basics}")
-	if err != nil || !correct {
-		t.Fatalf("SubmitAnswer() correct = %v, error = %v", correct, err)
+	if err := client.AddManga(context.Background(), "naruto"); err != nil {
+		t.Fatal(err)
 	}
-	progress, err := client.Progress(context.Background())
-	if err != nil || len(progress) != 1 {
-		t.Fatalf("Progress() count = %d, error = %v", len(progress), err)
+	progress, err := client.UpdateReading(context.Background(), "naruto", "reading", 5)
+	if err != nil || progress.CurrentChapter != 5 || progress.Version != 2 {
+		t.Fatalf("UpdateReading = %v, %v", progress, err)
 	}
-	if err := client.PublishChallenge(context.Background(), Challenge{ID: "new-task"}, "flag{new}"); err != nil {
-		t.Fatalf("PublishChallenge() error = %v", err)
+	library, err := client.Library(context.Background())
+	if err != nil || len(library) != 1 {
+		t.Fatalf("Library = %v, %v", library, err)
+	}
+	if err := client.ReleaseChapter(context.Background(), "naruto", 701); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -151,15 +168,15 @@ func TestRealtimeClientsReceiveTCPAndUDPEvents(t *testing.T) {
 	go client.RunProgressSync(ctx, events, statuses)
 	go client.RunNotifications(ctx, events, statuses)
 	waitForStatus(t, statuses, "TCP progress sync connected")
-	tcpServer.PublishProgress(9, "different-session", "dns-log-basics", time.Now())
-	waitForEvent(t, events, "Progress synchronized: dns-log-basics")
+	tcpServer.PublishMangaProgress(9, "different-session", store.LibraryEntry{MangaID: "naruto", CurrentChapter: 5, Version: 2})
+	waitForEvent(t, events, "Reading progress: naruto chapter 5 (v2)")
 
 	deadline := time.Now().Add(2 * time.Second)
 	for {
-		udpServer.NotifyChallengePublished("new-task", "New Task", "network", "easy")
+		udpServer.NotifyNewChapter("naruto", "Naruto", 701)
 		select {
 		case event := <-events:
-			if event == "New challenge: New Task" {
+			if event == "New chapter: Naruto — chapter 701" {
 				cancel()
 				<-tcpDone
 				<-udpDone

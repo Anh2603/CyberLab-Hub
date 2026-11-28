@@ -13,19 +13,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Anh2603/CyberLab-Hub/internal/auth"
-	"github.com/Anh2603/CyberLab-Hub/internal/store"
+	"github.com/Anh2603/MangaHub/internal/auth"
+	"github.com/Anh2603/MangaHub/internal/store"
 )
 
 const maxMessageBytes = 8 * 1024
 
 var sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9-]{8,64}$`)
-
-type ProgressEvent struct {
-	Type        string    `json:"type"`
-	ChallengeID string    `json:"challenge_id"`
-	SolvedAt    time.Time `json:"solved_at"`
-}
 
 type Server struct {
 	tokens      *auth.Manager
@@ -68,12 +62,6 @@ func (s *Server) Serve(ctx context.Context, listener net.Listener) error {
 			s.handleConnection(connection)
 		}()
 	}
-}
-
-func (s *Server) PublishProgress(userID int64, originSessionID, challengeID string, solvedAt time.Time) {
-	s.hub.publish(userID, originSessionID, ProgressEvent{
-		Type: "progress", ChallengeID: challengeID, SolvedAt: solvedAt.UTC(),
-	})
 }
 
 func (s *Server) PublishMangaProgress(userID int64, origin string, entry store.LibraryEntry) {

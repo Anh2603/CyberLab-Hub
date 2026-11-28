@@ -1,7 +1,7 @@
 # MangaHub v3.0 implementation checklist
 
-This document supersedes the CyberLab domain-substitution plan. The production
-commands now implement MangaHub F01–F06. Redis (F07) is optional and not implemented.
+The production commands implement MangaHub F01–F06. Redis (F07) is optional
+and not implemented.
 
 | Requirement | Implementation | Evidence |
 | --- | --- | --- |
@@ -39,7 +39,7 @@ commands now implement MangaHub F01–F06. Redis (F07) is optional and not imple
 
 ## Migration boundaries
 
-Do not reinterpret solved challenge data as chapter counts. Existing users remain
-valid; MangaHub adds `manga` and `user_library` tables with their own meaning.
-Historical CyberLab tables are preserved to avoid destructive data loss. The
-active server does not register the old challenge API/catalog service.
+Existing users and personal libraries remain valid. Startup creates only the
+required users, manga and user_library tables; existing unrelated tables are
+preserved without being read by application handlers. Session names use MangaHub,
+so users sign in again after upgrading. The persisted account role is unchanged.
